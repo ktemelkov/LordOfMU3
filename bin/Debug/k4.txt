@@ -1,0 +1,144 @@
+;
+;
+
+:msg >> Script started ...
+
+:delay 100
+
+:lock
+:say /move Devias4
+:sleep 4000
+:say //throw 14 28 4
+:sleep 4000
+:unlock
+
+:say //setskill DrainLife
+
+:say //multihit 10
+:say //hdist 10
+:say //pdist 10
+:say //hda 10
+:say //hd 0
+:say //autokill on
+
+
+:say //pick clear   ; clear autopick-up list
+:say //drop clear
+
+; :say //pick 13 16
+; :say //pick 13 17
+; :say //pick 13 11
+
+:say //pick 15 16   ; pick Scroll of Decay
+; :say //pick 14 41   ; pick Gemstone
+; :say //pick 13 1    ; imp
+:say //pick 13 14   ; feather, crest of monarch
+
+; :say //pick 14 11   ; hearts, firecrackers, boxes
+:say //drop 14 11
+
+; :say //pick 14 23   ; scroll of emperor, ring of honour
+; :say //pick 14 24   ; broken sword
+
+; chocolate boxes
+:say //pick 14 32 1; lilac candy box
+:say //pick 14 34 1; navy candy box
+
+; drop all boxes
+:say //drop 14 32
+:say //drop 14 33
+:say //drop 14 34
+:say //drop 14 55
+:say //drop 14 56
+:say //drop 14 57
+:say //drop 12 32
+:say //drop 12 33
+:say //drop 12 34
+
+
+; :say //pick 14 101 ; piece of paper
+; :say //pick 14 110 ; dimensions of the marker
+
+; :say //pick 14 101
+
+:say //set_pick_opt bless on on
+:say //set_pick_opt soul on on
+:say //set_pick_opt chaos on on
+:say //set_pick_opt jol on on
+:say //set_pick_opt joc on on
+:say //set_pick_opt jog on on
+:say //set_pick_opt exl on on
+:say //set_pick_opt zen on on
+:say //set_pick_opt custom on on
+
+:say //autopick on
+
+:repeat
+	:delay 250
+
+
+	:move_if_no_target 28 22
+  :move_if_no_target 31 22
+  :move_if_no_target 33 22
+  :move_if_no_target 35 22
+  :move_if_no_target 38 22
+  :move_if_no_target 41 22
+  :move_if_no_target 43 22
+  :move_if_no_target 46 22
+  :move_if_no_target 51 22
+  :move_if_no_target 54 23
+  :move_if_no_target 57 24
+  :move_if_no_target 61 23
+  :move_if_no_target 65 23
+  :move_if_no_target 67 23
+  :move_if_no_target 70 22
+  :move_if_no_target 73 20
+  :move_if_no_target 77 19
+  :move_if_no_target 82 19
+  :move_if_no_target 86 16
+  :move_if_no_target 90 16
+  :move_if_no_target 95 17
+  :move_if_no_target 99 17 
+  :move_if_no_target 102 21
+  :move_if_no_target 105 26
+  :move_if_no_target 107 33
+  :move_if_no_target 107 39
+  :move_if_no_target 105 46
+  :move_if_no_target 105 52
+  :move_if_no_target 104 62
+  :move_if_no_target 107 66
+  :move_if_no_target 110 70
+
+  :move_if_no_target 107 66
+  :move_if_no_target 104 62
+  :move_if_no_target 105 52
+  :move_if_no_target 105 46
+  :move_if_no_target 107 39
+  :move_if_no_target 107 33
+  :move_if_no_target 105 26
+  :move_if_no_target 102 21
+  :move_if_no_target 99 17 
+  :move_if_no_target 95 17
+  :move_if_no_target 90 16
+  :move_if_no_target 86 16
+  :move_if_no_target 82 19
+  :move_if_no_target 77 19
+  :move_if_no_target 73 20
+  :move_if_no_target 70 22
+  :move_if_no_target 67 23
+  :move_if_no_target 65 23
+  :move_if_no_target 61 23
+  :move_if_no_target 57 24
+  :move_if_no_target 54 23
+  :move_if_no_target 51 22
+  :move_if_no_target 46 22
+  :move_if_no_target 43 22
+  :move_if_no_target 41 22
+  :move_if_no_target 38 22
+  :move_if_no_target 35 22
+  :move_if_no_target 33 22
+  :move_if_no_target 31 22 
+:loop -1
+
+
+:msg >> Script finished.

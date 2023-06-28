@@ -1,0 +1,31 @@
+
+:say --pick all
+:say --autopick on
+
+:say --send C3 07 4B 30 00 3E E0
+:sleep 500
+
+:repeat
+  
+  :repeat
+    :say --send C3 06 51 32 36 07
+    :sleep 700
+  :loop 20
+  
+  :say //sendkey 1B
+  :sleep 200
+
+  :repeat
+    :say --throw 14 11 2
+    :sleep 200
+  :loop 25
+
+  :say --send C3 07 4B 30 00 3E E0
+  :sleep 350
+
+  :repeat
+    :say --sellany
+    :sleep 400
+  :loop 13
+  
+:loop 1000

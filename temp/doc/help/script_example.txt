@@ -1,0 +1,75 @@
+; 
+; MU AutoClicker script file example
+;
+; Comment character is ';'
+;
+;
+; Available commands: 
+; 
+; #define $ConstantName = Some Value 
+;    This defines a constant that can be used later in the script 
+; 
+; :msg message to display 
+;    Displays a blue server message to the client 
+; 
+; :lock 
+;    Lock the script running even a warp to another town packet is detected 
+; 
+; :unlock 
+;    Unlocks the script from running. If a warp packet is detected the script will automatically stop    
+; 
+; :say some_text 
+; :say //chat_command 
+;    Sends a chat message. If a command such as //pick xx yy is entered the bot will execute it. 
+; 
+; :delay time_in_ms 
+;    Sets a delay between two commands in milliseconds 
+; 
+; :sleep time_in_ms 
+;    Pause the script for given amount of time in milliseconds 
+; 
+; :move x y 
+;    Move the character to specified coodrinates. Coordinates must be in the range between 0 and 255. 
+;  
+; :repeat 
+; :loop repeat_count 
+;    Repeats the commands between the :repeat statement and the :loop statement for repeat_count times. 
+;    To make endless loop put -1 for repeat_count. 
+;
+
+
+#define $CharName = BloodyMary
+#define $FinishedMsg = Script finished.
+#define $StartedMsg = Script started ...
+
+:say //pick clear
+:say //pick 14 21
+
+:msg >> $StartedMsg
+
+:repeat
+	:delay 5000
+
+	:say +++++++
+	:say blah blah
+	
+	:delay 1000
+
+	:lock
+	:say /move Devias3
+	:unlock
+	
+	:delay 5000
+	:say +++++++
+
+	:delay 1000
+
+	:lock
+	:say /move Devias2
+	:unlock
+	
+:loop 3
+
+:msg >> $FinishedMsg
+
+

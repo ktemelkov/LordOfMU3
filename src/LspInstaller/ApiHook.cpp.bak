@@ -1,0 +1,430 @@
+#include "ApiHook.h"
+#include "StringUtil.h"
+#include "ProcessUtil.h"
+#include "Disasm.h"
+
+
+
+/**  
+ * \brief 
+ */
+namespace ApiHook
+{
+#pragma pack(push)
+#pragma pack(1)
+	struct CPatchInfo
+	{
+		BYTE m_abTrampBuff[64];
+		DWORD m_dwPatchSize;
+		DWORD m_dwHookProc;
+	};
+#pragma pack(pop)
+
+	#define InitVar(varType, varName) varType varName; StringUtil::MemSet(&varName, 0, sizeof(varName));
+	#define InitBuf(elType, bufName, elCount) elType bufName[elCount]; StringUtil::MemSet(bufName, 0, sizeof(elType)*elCount);
+
+	#define TestResultRet(expr, err_ret) if (!(expr)) return err_ret;
+	#define TestResult(expr) TestResultRet(expr, false)
+
+	#define InitNtMemApiRet(varName, retVal) \
+		InitVar(ProcessUtil::TNtApiTable, varName) \
+		TestResultRet(GetNtMemApi(varName), retVal)
+
+	#define InitNtMemApi(varName) InitNtMemApiRet(varName, false)
+
+
+	/**  
+	 * \brief 
+	 */
+	bool GetNtMemApi(ProcessUtil::TNtApiTable& NtApi)
+	{
+		NtApi.NtProtectVirtualMemory = (ProcessUtil::NtProtectVirtualMemoryPtr)1;
+		NtApi.NtWriteVirtualMemory = (ProcessUtil::NtWriteVirtualMemoryPtr)1;
+		NtApi.NtReadVirtualMemory = (ProcessUtil::NtReadVirtualMemoryPtr)1;
+		NtApi.NtAllocateVirtualMemory = (ProcessUtil::NtAllocateVirtualMemoryPtr)1;
+		NtApi.NtFreeVirtualMemory = (ProcessUtil::NtFreeVirtualMemoryPtr)1;
+
+		return ProcessUtil::GetNtApi(NtApi);
+	}
+
+
+	/**  
+	 * \brief 
+	 */
+	DWORD GetJMP(DWORD dwSrcAddr, DWORD dwDestAddr)
+	{
+		return (DWORD)(dwDestAddr - dwSrcAddr - 5);
+	}
+
+
+	/**  
+	 * \brief 
+	 */
+	DWORD ProtectMem(HANDLE hProcess, DWORD dwAddr, DWORD dwSize, DWORD dwProt)
+	{
+		InitNtMemApiRet(NtApi, 0);
+
+		DWORD dwOldProt = 0;
+		DWORD dwProtAddr = dwAddr;
+		ULONG ulProtSize = dwSize;
+		NtApi.NtProtectVirtualMemory(hProcess, (PVOID*)&dwProtAddr, &ulProtSize, dwProt, &dwOldProt);
+
+		return dwOldProt;
+	}
+
+	/**  
+	 * \brief 
+	 */
+	bool ReadProtectedMem(HANDLE hProcess, DWORD dwAddr, void* buff, DWORD dwSize)
+	{
+		InitNtMemApi(NtApi)
+
+		DWORD dwOldProt = ProtectMem(hProcess, dwAddr, dwSize, PAGE_EXECUTE_READWRITE);
+
+		if (!dwOldProt)
+			return false;
+
+		DWORD dwRead = 0;
+		NtApi.NtReadVirtualMemory(hProcess,(LPVOID)dwAddr, buff, dwSize, &dwRead);
+
+		ProtectMem(hProcess, dwAddr, dwSize, dwOldProt);
+
+		return (dwRead == dwSize);
+	}
+
+
+
+	/**  
+	 * \brief 
+	 */
+	bool WriteProtectedMem(HANDLE hProcess, DWORD dwAddr, void* buff, DWORD dwSize)
+	{
+		InitNtMemApi(NtApi)
+
+		DWORD dwOldProt = ProtectMem(hProcess, dwAddr, dwSize, PAGE_EXECUTE_READWRITE);
+
+		if (!dwOldProt)
+			return false;
+
+		DWORD dwWritten = 0;
+		NtApi.NtWriteVirtualMemory(hProcess,(LPVOID)dwAddr, buff, dwSize, &dwWritten);
+
+		ProtectMem(hProcess, dwAddr, dwSize, dwOldProt);
+
+		return (dwWritten == dwSize);
+	}
+
+
+	/**  
+	 * \brief 
+	 */
+	void* AllocateMem(HANDLE hProcess, DWORD dwSize, DWORD dwProtection = PAGE_EXECUTE_READ)
+	{
+		InitNtMemApiRet(NtApi, 0)
+
+		void* pRemMem = 0;
+		ULONG ulAllocSize = dwSize;
+		NtApi.NtAllocateVirtualMemory(hProcess, (PVOID*)&pRemMem, 0, &ulAllocSize, MEM_RESERVE | MEM_COMMIT, dwProtection);
+
+		return pRemMem;
+	}
+
+
+	/**
+	 * \brief
+	 */
+	DWORD_PTR FindPatchPoint(HANDLE hProcess, DWORD_PTR pFuncAddress, DWORD_PTR pCallback)
+	{
+		InitNtMemApiRet(NtApi, 0)
+		InitBuf(BYTE, buff, 11)
+
+		TestResultRet(!(pFuncAddress == pCallback), 0)
+		TestResultRet(ReadProtectedMem(hProcess, pFuncAddress - 5, buff, sizeof(buff)), 0)
+
+		TestResultRet(!(buff[5] == 0xC3), 0)
+		TestResultRet(!(buff[5] == 0xE9 || buff[5] == 0xE8), FindPatchPoint(hProcess, *((DWORD*)(buff+6)) + pFuncAddress + 5, pCallback))
+		TestResultRet(!(buff[0] == 0xE9 && buff[5] == 0xEb && buff[6] == 0xF9), FindPatchPoint(hProcess, *((DWORD*)(buff+1)) + pFuncAddress, pCallback))
+		TestResultRet(!(buff[5] == 0x68 && buff[10] == 0xC3), FindPatchPoint(hProcess, *((DWORD*)(buff+6)), pCallback))
+
+		if (buff[5] == 0xFF && (buff[6] == 0x25 || buff[6] == 0x15))
+		{
+			TestResultRet(ReadProtectedMem(hProcess, *((DWORD*)(buff+7)), buff, 4), 0)
+			return FindPatchPoint(hProcess, *((DWORD*)buff), pCallback);
+		}
+
+		return pFuncAddress;
+	}
+
+
+	/**  
+	 * \brief 
+	 */
+	bool IsHotPatchable(BYTE* buff)
+	{
+		return *((WORD*)(buff+5)) == 0xFF8B && 
+					((buff[0] == 0x90 && *((DWORD*)(buff+1)) == 0x90909090) || (buff[0] == 0xE9));
+	}
+
+
+	/**  
+	 * \brief 
+	 */
+	bool ApplyHotPatch(HANDLE hProcess, DWORD_PTR pFuncAddr, DWORD_PTR pCallback, DWORD_PTR pOrigProcAddr)
+	{
+		InitNtMemApi(NtApi)
+
+		BYTE JMP[] = "\xE9\x00\x00\x00\x00\xEb\xF9";
+		*(PDWORD)(JMP+1) = GetJMP((DWORD)((PUCHAR)pFuncAddr-0x5), (DWORD)pCallback);
+
+		InitVar(CPatchInfo, info)
+		InitVar(CPatchInfo*, pRemPatch)
+		TestResult(pRemPatch = (CPatchInfo*)AllocateMem(hProcess, sizeof(CPatchInfo)))
+
+		DWORD dwAddrBack = GetJMP((DWORD)pRemPatch->m_abTrampBuff, (DWORD)(pFuncAddr+2));
+
+		info.m_dwHookProc = (DWORD)pCallback;
+		info.m_abTrampBuff[0] = 0xE9;
+		StringUtil::MemCopy(info.m_abTrampBuff+1, &dwAddrBack, sizeof(dwAddrBack));
+
+		return WriteProtectedMem(hProcess, (DWORD)pRemPatch, &info, sizeof(info))
+				&& WriteProtectedMem(hProcess, (DWORD)pOrigProcAddr, &pRemPatch, sizeof(pRemPatch))
+				&& WriteProtectedMem(hProcess, pFuncAddr - 5, JMP, 7);
+	}
+
+
+	/**  
+	 * \brief 
+	 */
+	bool DisasmAndCopyTramp(BYTE* buff, BYTE* trampBuff, BYTE* pRemoteBuf, DWORD& dwIdx, ULONG ulSizeToProtect)
+	{
+		InitVar(DISASSEMBLY, disasm)
+		disasm.Address = (DWORD)buff;
+
+		for (dwIdx = 0; dwIdx <= ulSizeToProtect; )
+		{
+			DWORD dwTmp = 0;
+
+			FlushDecoded(&disasm);
+			Decode(&disasm, (char*)(DWORD)disasm.Address, &dwTmp);
+
+			DWORD dwInstrSize = disasm.OpcodeSize + disasm.PrefixSize;
+			StringUtil::MemCopy(trampBuff + dwIdx, (void*)disasm.Address, dwInstrSize);
+
+			if (trampBuff[dwIdx] == 0xE9 || trampBuff[dwIdx] == 0xE8) // fix far relative jumps/calls
+			{				
+				DWORD jmp = *((DWORD*)(disasm.Address + 1));
+				DWORD dwDstAddr = jmp + disasm.Address + 5;
+				DWORD new_jmp = dwDstAddr - ((DWORD)pRemoteBuf + dwIdx) - 5; //new relative jump address
+
+				*((DWORD*)(trampBuff + dwIdx + 1)) = new_jmp; 
+			}
+			else if (trampBuff[dwIdx] == 0xEb) // fix short jumps
+			{	
+				BYTE jmp = *((BYTE*)(disasm.Address + 1));
+				DWORD dwDstAddr = (char)jmp + disasm.Address + 1;
+
+				DWORD new_jmp = dwDstAddr - ((DWORD)pRemoteBuf + dwIdx) - 5;
+
+				trampBuff[dwIdx] = 0xE9;
+				*((DWORD*)(trampBuff + dwIdx + 1)) = new_jmp;
+
+				dwIdx += 3;
+			}
+
+			disasm.Address += dwInstrSize;
+			dwIdx += dwInstrSize;
+		}
+
+		return true;
+	}
+
+
+	/**  
+	 * \brief 
+	 *	
+	 *	// FF 15 xx xx xx xx - call absolute address
+	 *	// FF 25 xx xx xx xx - jump to absolute address
+	 *	// E9 xx xx xx xx - jump to relative address
+	 *	// E8 xx xx xx xx - call relative address
+	 *	// EB xx - jump relative
+	 *	// 
+	 *	// FF D6 - call esi
+	 *	// 8B 35 xx xx xx xx - mov esi, memory address
+	 *
+	 */
+	bool RemoteHotPatch(HANDLE hProcess, DWORD_PTR pFuncAddr, DWORD_PTR pCallback, DWORD_PTR pOrigProcAddr)
+	{
+		InitBuf(BYTE, buff, 24)		
+		InitNtMemApi(NtApi)
+
+		TestResult(pFuncAddr = FindPatchPoint(hProcess, pFuncAddr, pCallback))
+		TestResult(ReadProtectedMem(hProcess, pFuncAddr - 5, buff, 24))
+
+//		TestResultRet(!IsHotPatchable(buff), ApplyHotPatch(hProcess, pFuncAddr, pCallback, pOrigProcAddr))
+
+		InitVar(CPatchInfo, info)
+		InitVar(CPatchInfo*, pRemPatch)
+		TestResult(pRemPatch = (CPatchInfo*)AllocateMem(hProcess, sizeof(CPatchInfo)))
+
+		DWORD dwIdx = 0;
+		DisasmAndCopyTramp(buff + 5, info.m_abTrampBuff, pRemPatch->m_abTrampBuff, dwIdx, 6);
+
+
+		DWORD Alignment = (dwIdx + 0x5) & ~0x3; // Four byte alignment of the preamble plus two to account for the jmp indirect
+		DWORD TotalSize = Alignment + (sizeof(PVOID) * 3); // Calculate the total amount of memory we're going to need.
+
+		// Append the indirect jump back to the original function
+		info.m_abTrampBuff[dwIdx] = 0xff;
+		info.m_abTrampBuff[dwIdx + 1] = 0x25;
+		*((PVOID*)(info.m_abTrampBuff + dwIdx + 2)) = (PVOID)(pRemPatch->m_abTrampBuff + Alignment + 4);
+
+		// Next comes the pointer to the original function.
+		*((PVOID*)(info.m_abTrampBuff + Alignment + 4)) = (PVOID)(pFuncAddr + dwIdx);
+
+
+		// And last, the pointer to our hook routine for use in our indirect jump that we overwrite the preamble with.
+		*((PVOID*)(info.m_abTrampBuff + Alignment + 8)) = (PVOID)pCallback;
+
+		info.m_dwPatchSize = dwIdx;
+		info.m_dwHookProc = pCallback;
+
+		// Now, let's overwrite the function.
+		buff[5] = 0xff;
+		buff[6] = 0x25;
+		*((PVOID*)(buff + 7)) = (PVOID)(pRemPatch->m_abTrampBuff + Alignment + 8);
+
+/*		buff[5] = 0x68;
+		buff[10] = 0xC3;
+		*((PVOID*)(buff + 6)) = (PVOID)pCallback;
+/**/
+
+		for (int i=dwIdx; i >= 6; i--)
+			buff[5 + i] = 0x90;
+
+		return WriteProtectedMem(hProcess, (DWORD)pRemPatch, &info, sizeof(info)) 
+			&& WriteProtectedMem(hProcess, pFuncAddr, buff+5, dwIdx)
+			&& WriteProtectedMem(hProcess, pOrigProcAddr, &pRemPatch, 4);
+	}
+
+
+
+	/**  
+	 * \brief 
+	 */
+	bool PatchExport(HMODULE hModule, const char* fnName, PVOID pAddr, PVOID* pvOrigAddr)
+	{
+		*pvOrigAddr = (VOID*)ProcessUtil::FindFnAddressByName(hModule, fnName);
+
+		if (!*pvOrigAddr)
+			return false;
+
+		DWORD* pEntry = ProcessUtil::FindFnExportEntry(hModule, fnName);
+
+		if (!pEntry)
+			return false;
+
+
+		ProcessUtil::TNtApiTable NtApi;
+		StringUtil::MemSet(&NtApi, 0, sizeof(NtApi));
+
+		NtApi.NtProtectVirtualMemory = (ProcessUtil::NtProtectVirtualMemoryPtr)1;
+		
+		if (!ProcessUtil::GetNtApi(NtApi))
+			return false;
+
+		DWORD dwAddress = (DWORD)pEntry;
+		ULONG ulSize = 4;
+		DWORD dwOldProtect = 0;
+
+		NtApi.NtProtectVirtualMemory((HANDLE)-1, (PVOID*)&dwAddress, &ulSize, PAGE_EXECUTE_READWRITE, &dwOldProtect);
+
+		bool fRet = true;
+
+		if ((int)(*pEntry) >0 && (int)(*pEntry) < (int)ProcessUtil::GetModuleSize(hModule))
+		{
+			*pEntry = (DWORD)pAddr - (DWORD)hModule;
+		}
+		else
+		{
+			// already patched
+			fRet = false;
+		}
+
+		ulSize = 4;
+		NtApi.NtProtectVirtualMemory((HANDLE)-1, (PVOID*)&dwAddress, &ulSize, dwOldProtect, &dwOldProtect);
+		return fRet;
+	}
+
+
+
+	/**  
+	 * \brief 
+	 */
+	bool RemoteUnPatchXXX(HANDLE hProcess, DWORD_PTR pOrigProcAddr)
+	{
+		if (!pOrigProcAddr)
+			return 0;
+
+		ProcessUtil::TNtApiTable NtApi;
+		StringUtil::MemSet(&NtApi, 0, sizeof(NtApi));
+
+		NtApi.NtProtectVirtualMemory = (ProcessUtil::NtProtectVirtualMemoryPtr)1;
+		NtApi.NtWriteVirtualMemory = (ProcessUtil::NtWriteVirtualMemoryPtr)1;
+		NtApi.NtReadVirtualMemory = (ProcessUtil::NtReadVirtualMemoryPtr)1;
+		NtApi.NtFreeVirtualMemory = (ProcessUtil::NtFreeVirtualMemoryPtr)1;
+
+		if (!ProcessUtil::GetNtApi(NtApi))
+			return false;
+
+
+		DWORD dwIO = 0;
+		BYTE buff[64];
+
+		NtApi.NtReadVirtualMemory(hProcess, (PVOID)pOrigProcAddr, buff, 64, &dwIO);
+
+		if (buff[0] == 0xE9)
+		{
+			DWORD jmp = *((DWORD*)(buff+1));
+			DWORD dwSrcAddr = (DWORD)pOrigProcAddr - jmp - 5;
+			dwSrcAddr -= 2;
+
+			DWORD dwAddress = (DWORD)dwSrcAddr;
+			ULONG ulSize = 2;
+			DWORD dwOldProtect = 0;
+
+			NtApi.NtProtectVirtualMemory((HANDLE)-1, (PVOID*)&dwAddress, &ulSize, PAGE_EXECUTE_READWRITE, &dwOldProtect);
+
+			BYTE nops[] = { 0x90, 0x90 };
+			NtApi.NtWriteVirtualMemory(hProcess, (PVOID)dwSrcAddr, nops, 2, &dwIO);
+
+			ulSize = 2;
+			NtApi.NtProtectVirtualMemory((HANDLE)-1, (PVOID*)&dwAddress, &ulSize, dwOldProtect, &dwOldProtect);
+		}
+		else
+		{
+			// Trampped
+
+			int ops = 0;
+			for (ops; buff[ops] != 0xE9; ops++);
+
+
+			DWORD jmp = *((DWORD*)(buff+ops+1));
+			DWORD dwSrcAddr = (DWORD)pOrigProcAddr - jmp - 5;
+			dwSrcAddr -= ops;
+
+			DWORD dwAddress = (DWORD)dwSrcAddr;
+			ULONG ulSize = ops;
+			DWORD dwOldProtect = 0;
+
+			NtApi.NtProtectVirtualMemory((HANDLE)-1, (PVOID*)&dwAddress, &ulSize, PAGE_EXECUTE_READWRITE, &dwOldProtect);
+
+			NtApi.NtWriteVirtualMemory(hProcess, (PVOID)dwSrcAddr, buff, ops, &dwIO);
+
+			ulSize = ops;
+			NtApi.NtProtectVirtualMemory((HANDLE)-1, (PVOID*)&dwAddress, &ulSize, dwOldProtect, &dwOldProtect);
+		}
+
+		return true;
+	}
+
+}

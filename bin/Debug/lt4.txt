@@ -1,0 +1,285 @@
+;
+;
+
+:msg >> Script started ...
+
+:delay 100
+
+:say //multihit 12
+:say //hdist 3
+:say //pdist 4
+:say //hda 10
+:say //hd 0
+:say //autopick on
+:say //autosay on
+:say //autokill on
+:say //pick 13 16
+:say //pick 13 17
+:say //pick 13 11
+:say //pick 14 24
+
+:repeat
+	:delay 100
+
+	:repeat
+		:move_if_no_target 133 87
+		:move_if_no_target 133 88
+		:move_if_no_target 133 89
+		:move_if_no_target 133 90
+		:move_if_no_target 133 91
+		:move_if_no_target 133 92
+		:move_if_no_target 133 93
+		:move_if_no_target 133 94
+		:move_if_no_target 133 95
+		:move_if_no_target 133 96
+		:move_if_no_target 133 97
+		:move_if_no_target 133 98
+		:move_if_no_target 133 99
+		:move_if_no_target 133 100
+
+		:move_if_no_target 132 100
+		:move_if_no_target 131 100
+		:move_if_no_target 130 100
+		:move_if_no_target 129 100
+		:move_if_no_target 128 100
+		:move_if_no_target 127 100
+		:move_if_no_target 126 100
+		:move_if_no_target 125 100
+		:move_if_no_target 124 100
+		:move_if_no_target 123 100
+		:move_if_no_target 122 100
+		:move_if_no_target 121 100
+		:move_if_no_target 120 100
+		:move_if_no_target 119 100
+
+		:move_if_no_target 119 99
+		:move_if_no_target 119 98
+		:move_if_no_target 119 97
+		:move_if_no_target 119 96
+		:move_if_no_target 119 95
+		:move_if_no_target 119 94
+		:move_if_no_target 119 93
+		:move_if_no_target 119 92
+		:move_if_no_target 119 91
+		:move_if_no_target 119 90
+		:move_if_no_target 119 89
+		:move_if_no_target 119 88
+		:move_if_no_target 119 87
+
+		:move_if_no_target 120 87
+		:move_if_no_target 121 87
+		:move_if_no_target 122 87
+		:move_if_no_target 123 87
+		:move_if_no_target 124 87
+		:move_if_no_target 125 87
+		:move_if_no_target 126 87
+		:move_if_no_target 127 87
+		:move_if_no_target 128 87
+		:move_if_no_target 129 87
+		:move_if_no_target 130 87
+		:move_if_no_target 131 87
+		:move_if_no_target 132 87
+	:loop -1
+
+
+	:move_if_no_target 133 87
+	:move_if_no_target 133 88
+	:move_if_no_target 133 89
+	:move_if_no_target 133 90
+	:move_if_no_target 133 91
+	:move_if_no_target 133 92
+	:move_if_no_target 133 93
+	:move_if_no_target 133 94
+	:move_if_no_target 133 95
+	:move_if_no_target 133 96
+	:move_if_no_target 133 97
+	:move_if_no_target 133 98
+	:move_if_no_target 133 99
+	:move_if_no_target 133 100
+	                     
+	:move_if_no_target 133 101
+	:move_if_no_target 133 102
+	:move_if_no_target 133 103
+	:move_if_no_target 133 104
+	:move_if_no_target 133 105
+	:move_if_no_target 133 106
+	:move_if_no_target 133 107
+	:move_if_no_target 133 108
+	:move_if_no_target 133 109
+	:move_if_no_target 133 110
+	:move_if_no_target 133 111
+	:move_if_no_target 133 112
+	:move_if_no_target 133 113
+	:move_if_no_target 133 114
+	:move_if_no_target 133 115
+	:move_if_no_target 133 116
+	:move_if_no_target 133 117
+
+	:repeat
+		:move_if_no_target 133 118
+		:move_if_no_target 133 119
+		:move_if_no_target 133 120
+		:move_if_no_target 133 121
+		:move_if_no_target 133 122
+		:move_if_no_target 133 123
+		:move_if_no_target 133 124
+		:move_if_no_target 133 125
+		:move_if_no_target 133 126
+		:move_if_no_target 133 127
+		:move_if_no_target 133 128
+		:move_if_no_target 133 129
+		:move_if_no_target 133 130
+		:move_if_no_target 133 131
+		:move_if_no_target 133 132
+		:move_if_no_target 133 133
+
+		:move_if_no_target 132 133
+		:move_if_no_target 131 133
+		:move_if_no_target 130 133
+		:move_if_no_target 129 133
+		:move_if_no_target 128 133
+		:move_if_no_target 127 133
+		:move_if_no_target 126 133
+		:move_if_no_target 125 133
+		:move_if_no_target 124 133
+		:move_if_no_target 123 133
+		:move_if_no_target 122 133
+		:move_if_no_target 121 133
+		:move_if_no_target 120 133
+
+		:move_if_no_target 120 132
+		:move_if_no_target 120 131
+		:move_if_no_target 120 130
+		:move_if_no_target 120 129
+		:move_if_no_target 120 128
+		:move_if_no_target 120 127
+		:move_if_no_target 120 126
+		:move_if_no_target 120 125
+		:move_if_no_target 120 124
+		:move_if_no_target 120 123
+		:move_if_no_target 120 122
+		:move_if_no_target 120 121
+		:move_if_no_target 120 120
+		:move_if_no_target 120 119
+		:move_if_no_target 120 118
+		
+		:move_if_no_target 121 118
+		:move_if_no_target 122 118
+		:move_if_no_target 123 118
+		:move_if_no_target 124 118
+		:move_if_no_target 125 118
+		:move_if_no_target 126 118
+		:move_if_no_target 127 118
+		:move_if_no_target 128 118
+		:move_if_no_target 129 118
+		:move_if_no_target 130 118
+		:move_if_no_target 131 118
+		:move_if_no_target 132 118		
+	:loop 3
+	
+	:move_if_no_target 133 118
+	:move_if_no_target 133 117
+	:move_if_no_target 133 116
+	:move_if_no_target 133 115
+	:move_if_no_target 133 114
+	:move_if_no_target 133 113
+	:move_if_no_target 133 112
+	:move_if_no_target 133 111
+	:move_if_no_target 133 110
+	:move_if_no_target 133 109
+	:move_if_no_target 133 108
+	:move_if_no_target 133 107
+	:move_if_no_target 133 106
+	:move_if_no_target 133 105
+	:move_if_no_target 133 104
+	:move_if_no_target 133 103
+	:move_if_no_target 133 102
+	:move_if_no_target 133 101
+	:move_if_no_target 133 100
+	
+
+	:move_if_no_target 132 100
+	:move_if_no_target 131 100
+	:move_if_no_target 130 100
+	:move_if_no_target 129 100
+	:move_if_no_target 128 100
+	:move_if_no_target 127 100
+	:move_if_no_target 126 100
+	:move_if_no_target 125 100
+	:move_if_no_target 124 100
+	:move_if_no_target 123 100
+	:move_if_no_target 122 100
+	:move_if_no_target 121 100
+	:move_if_no_target 120 100
+
+	:move_if_no_target 120 101
+	:move_if_no_target 120 102
+	:move_if_no_target 120 103
+	:move_if_no_target 120 104
+	:move_if_no_target 120 105
+	:move_if_no_target 120 106
+	:move_if_no_target 120 107
+	:move_if_no_target 120 108
+	:move_if_no_target 120 109
+	:move_if_no_target 120 110
+	:move_if_no_target 120 111
+	:move_if_no_target 120 112
+	:move_if_no_target 120 113
+	:move_if_no_target 120 114
+	:move_if_no_target 120 115
+	:move_if_no_target 120 116
+	:move_if_no_target 120 117
+	:move_if_no_target 120 118
+
+
+	:move_if_no_target 121 118
+	:move_if_no_target 122 118
+	:move_if_no_target 123 118
+	:move_if_no_target 124 118
+	:move_if_no_target 125 118
+	:move_if_no_target 126 118
+	:move_if_no_target 127 118
+	:move_if_no_target 128 118
+	:move_if_no_target 129 118
+	:move_if_no_target 130 118
+	:move_if_no_target 131 118
+	:move_if_no_target 132 118
+	
+	:move_if_no_target 133 118
+	:move_if_no_target 133 117
+	:move_if_no_target 133 116
+	:move_if_no_target 133 115
+	:move_if_no_target 133 114
+	:move_if_no_target 133 113
+	:move_if_no_target 133 112
+	:move_if_no_target 133 111
+	:move_if_no_target 133 110
+	:move_if_no_target 133 109
+	:move_if_no_target 133 108
+	:move_if_no_target 133 107
+	:move_if_no_target 133 106
+	:move_if_no_target 133 105
+	:move_if_no_target 133 104
+	:move_if_no_target 133 103
+	:move_if_no_target 133 102
+	:move_if_no_target 133 101
+	:move_if_no_target 133 100
+
+	:move_if_no_target 133 99
+	:move_if_no_target 133 98
+	:move_if_no_target 133 97
+	:move_if_no_target 133 96
+	:move_if_no_target 133 95
+	:move_if_no_target 133 94
+	:move_if_no_target 133 93
+	:move_if_no_target 133 92
+	:move_if_no_target 133 91
+	:move_if_no_target 133 90
+	:move_if_no_target 133 89
+	:move_if_no_target 133 88
+	:move_if_no_target 133 87
+
+:loop -1
+
+:msg >> Script finished.
+

@@ -1,0 +1,29 @@
+:delay 100
+
+:say //multihit 10
+:say //hdist 3
+:say //pdist 4
+:say //hda 10
+:say //hd 0
+:say //pick 13 16
+:say //pick 13 17
+:say //pick 13 11
+:say //pick 14 24
+
+:repeat
+	:delay 500
+	
+	:move_if_no_target 36 206
+	:move_if_no_target 36 207
+	:move_if_no_target 36 208
+	:move_if_no_target 37 208
+	:move_if_no_target 38 208
+	
+	:move_if_no_target 39 208
+	:move_if_no_target 38 208
+	:move_if_no_target 37 208
+	:move_if_no_target 36 208
+	:move_if_no_target 36 207
+	:move_if_no_target 36 206
+	
+:loop -1

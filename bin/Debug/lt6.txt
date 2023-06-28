@@ -1,0 +1,36 @@
+;
+;
+
+:msg >> Script started ...
+
+:delay 100
+
+:say //multihit 0
+:say //hdist 2
+:say //pdist 3
+:say //hda 10
+:say //hd 0
+:say //autopick on
+:say //autosay on
+:say //autokill on
+
+:repeat
+	:delay 500
+
+	:move_if_no_target 7 54
+	:move_if_no_target 7 53
+	:move_if_no_target 7 52
+	:move_if_no_target 7 51
+	:move_if_no_target 7 50
+	:move_if_no_target 7 49
+	:move_if_no_target 7 48
+	:move_if_no_target 7 47
+	:move_if_no_target 7 46
+	:move_if_no_target 7 45
+	:move_if_no_target 7 44
+	:move_if_no_target 7 43
+
+:loop -1
+
+:msg >> Script finished.
+

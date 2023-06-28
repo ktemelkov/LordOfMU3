@@ -1,0 +1,89 @@
+<html>
+<head>
+  <link rel="StyleSheet" href="styles/ui.css" type="text/css" />
+  <script src="scripts/ui.js"></script>
+
+  <script>
+
+    function onAppLoad()
+    {
+      lib_onAppLoad();
+      applyModState();
+      
+      window.external.SetWindowSize(600,300);
+	  
+		document.getElementById('divVersionText').innerHTML = window.external.GetVersion();
+    }
+    
+    function applyModState()
+    {
+    	var mod = 3;
+
+    	if (mod >= 3)
+    	{
+     	   document.getElementById('divPurchase').style.display = 'none';
+     	   document.getElementById('btnBuyNow').style.display = 'none';
+     	   document.getElementById('btnUnlock').style.display = 'none';
+    	}
+    	else if (mod == 2 || mod == 1)
+    	{
+     	   document.getElementById('divPurchase').style.display = 'none';
+     	   document.getElementById('btnBuyNow').value = 'Upgrade';
+    	}
+    	else
+    	{
+    	}
+    }
+    
+    function onClickBuyNow()
+    {
+    }
+    
+    
+    function onClickUnlock()
+    {
+    }
+
+  </script>
+</head>
+<body onload="onAppLoad()">
+  <div id="divMainTitleShadow4">MU AutoClicker</div>
+  <div id="divMainTitleShadow3">MU AutoClicker</div>
+  <div id="divMainTitleShadow2">MU AutoClicker</div>
+  <div id="divMainTitleShadow5">MU AutoClicker</div>
+  <div id="divMainTitleShadow">MU AutoClicker</div>
+  <div id="divMainTitle">MU AutoClicker</div>
+
+  <div id="divVersionInfo"><div id="divVersionText" class="textWithShadow"></div></div>
+
+  <div id="divPurchase">
+    <a href="" onclick="javascript: onClickBuyNow(); return false;">
+      <img style="border: 0;" src="images/buynow.png"/>
+    </a>
+  </div>
+
+  <div id="divMenu">
+    <div class="menuPanel"><a href="#">New version available!</a></div>
+  </div>
+  
+  <div id="divContent">
+    <span>Path to MU Launcher or Main.exe:</span>
+    <input id="muPath" type="text" class="textField" style="width: 100%;"/>
+    <div style="text-align: right; margin-top: 3px;">
+      <input type="button" class="cmdButton" onmouseover="lib_onBtnMouseOvr(this)" onmouseout="lib_onBtnMouseOut(this)" value="Browse" onclick="lib_onClickBrowse()"/>
+    </div>
+  </div>
+
+  <div id="divDlgButtonsLeft">
+    <input class="cmdButton" type="button" onmouseover="lib_onBtnMouseOvr(this)" onmouseout="lib_onBtnMouseOut(this)" value="Help" onclick="lib_onClickHelp()"/>
+    <span style="margin-left: 35px;" > </span>
+    <input class="cmdButton" id="btnBuyNow" type="button" onmouseover="lib_onBtnMouseOvr(this)" onmouseout="lib_onBtnMouseOut(this)" value="Buy Now" onclick="onClickBuyNow()"/>
+    <input class="cmdButton" id="btnUnlock" type="button" onmouseover="lib_onBtnMouseOvr(this)" onmouseout="lib_onBtnMouseOut(this)" value="Activate" onclick="onClickUnlock()"/>
+  </div>
+  
+  <div id="divDlgButtonsRight">
+    <input class="cmdButton" type="button" onmouseover="lib_onBtnMouseOvr(this)" onmouseout="lib_onBtnMouseOut(this)" value="Run Game" onclick="lib_onClickRun()"/>
+    <input class="cmdButton" type="button" onmouseover="lib_onBtnMouseOvr(this)" onmouseout="lib_onBtnMouseOut(this)" value="Exit" onclick="lib_onClickExit()"/>
+  </div>
+</body>
+</html>

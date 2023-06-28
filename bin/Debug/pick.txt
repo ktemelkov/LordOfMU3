@@ -1,0 +1,13 @@
+; 
+; MU AutoClicker //pick commands example
+;
+
+:msg script started
+
+:say //pick clear   ; clear autopick-up list
+:say //pick 15 16   ; pick Scroll of Decay
+:say //pick 14 41   ; pick Gemstone
+:say //pick 13 17   ; pick Gemstone
+
+:msg script finished.
+

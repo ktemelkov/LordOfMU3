@@ -1,0 +1,429 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<html>
+<head>
+    <title>MU AutoClicker Help</title>
+    <meta http-equiv="Content-Type" content="text/html" charset="utf-8"/>
+    <style>
+        body {
+            margin-top: 0px;
+            margin-left: 0px;
+            margin-right: 0px;
+            background-color: #610000;
+            background-image: url('images/bg.png');
+            background-repeat: repeat-x;
+        }
+
+        .header {
+            text-align: center;
+            height: 133px;
+            width: 604px;
+            background-image: url('images/i_header.jpg');
+            background-repeat: no-repeat;
+            background-position: center;
+            border-left: 1px solid #502222;
+            border-right: 1px solid #502222;
+            border-bottom: 1px solid #502222;
+            margin-bottom: 5px;
+        }
+        
+        .title {
+            color: #FFFFFF;
+            font-weight: bold;
+            font-size: 26pt;
+            background: rgba(0, 0, 0, 0.2);
+            width: 100%;
+        }
+
+        .title2 {
+            color: #EEEEEE;
+            font-weight: bold;
+            font-size: 14pt;
+            background: rgba(0, 0, 0, 0.2);
+            width: 100%;
+            margin-top: 5px;
+			font-variant: small-caps;
+        }
+
+        .menu {
+            margin-bottom: 3px;
+            margin-top: 3px;
+            padding-top: 4px;
+            text-align: center;
+            font-weight: bold;
+            font-family: Tahoma;
+            font-size: 10pt;
+            vertical-align: middle;
+            height: 22px;
+            width: 604px;
+            background-color: #000000;
+            border-left: 1px solid #502222;
+            border-right: 1px solid #502222;
+            border-top: 1px solid #502222;
+            border-bottom: 1px solid #502222;
+        }
+
+        .menu a {
+            color: #FFFFFF;
+            text-decoration: none;
+        }
+ 
+        a {
+            color: #FFFFFF;
+        }
+
+        .menu_delim {
+            color: #222222;
+        }        
+
+        .content {
+            border-top: 1px solid #502222;
+            display: block;
+            width: 604px;
+            border-left: 1px solid #502222;
+            border-right: 1px solid #502222;
+            border-bottom: 1px solid #502222;
+            text-align: left;
+            color: #AAAAAA;
+            background-image: url('images/panel_bg.png');
+            background-repeat: repeat;
+        }
+
+		.footer {
+            display: block;
+            width: 604px;
+            color: #AAAAAA;
+			margin-top: 10px;
+			text-align: right;
+			font-size: 10pt;
+			font-style: italic;
+		}
+		
+		#Content1 {
+            display: block;
+		}
+
+		#Content2 {
+            display: none;
+		}
+
+		#Content3 {
+            display: none;
+		}
+
+		#Content4 {
+            display: none;
+		}
+		
+        h3 {
+            border-bottom: 1px solid #886666;
+            border-top: 1px solid #554444;
+            padding-left: 5px;
+            padding-top: 3px;
+            margin-top: 20px;
+			color: #FFFFAA;
+            background-image: url('images/panel2_bg.png');
+            background-repeat: repeat;
+        }
+        
+        .h4 {
+			font-weight: bold;
+			color: #FFFF55;
+			margin-top: 10px;
+        }
+        
+        .h5 {
+			text-decoration: underline;
+			margin-left: 10px; 
+			margin-top: 10px;
+			color: #FFFFFF;
+        }
+
+        .h5i {
+			font-style: italic;
+			margin-left: 10px; 
+			margin-top: 10px;
+			color: #FFFFFF;
+        }
+
+        .h6 {
+			text-decoration: underline;
+			margin-left: 20px; 
+			margin-top: 10px;
+			color: #FFFFFF;
+        }
+
+        .num {
+			font-weight: bold;
+			color: #FFFFFF;
+        }
+
+        .enum {
+			font-weight: normal;
+			font-style: italic;
+			color: #FFFFFF;
+        }
+
+		.note {
+			margin-left: 10px; 
+			margin-top: 7px;
+			font-weight: normal;
+			color: #77AA77;
+		}
+
+		.note_title {
+			font-weight: bold;
+			color: #77FF77;
+		}
+		
+    </style>
+
+    <script>
+        function onClickHome() {
+            document.getElementById('Content1').style.display = 'block';
+            document.getElementById('Content2').style.display = 'none';
+            return 0;
+        }
+
+        function onClickDownload() {
+            document.getElementById('Content1').style.display = 'none';
+            document.getElementById('Content2').style.display = 'block';
+            return 0;
+        }
+    </script>
+</head>
+<body>
+    <center>
+		<div class="header">
+			<br/>
+			<br/>
+			<div class="title">MU AutoClicker</div>
+			<div class="title2">User's Guide</div>
+		</div>
+        <div id="Content1" class="content">
+            <div style="margin-left: 10px; margin-right: 10px;">
+				<h3>General</h3>
+				<div class="h4">Installation:</div>
+				<div style="margin-left: 10px;"><span class="num">1]</span> Donwload latest version from <a href="http://muonline.ktemelkov.info" target="_blank">muonline.ktemelkov.info</a></div>
+				<div style="margin-left: 10px;"><span class="num">2]</span> Unzip to a folder on hard drive</div>
+				<div class="h4">Startup:</div>
+				<div style="margin-left: 10px;"><span class="num">1]</span> Start ClickerGUI.exe executable file.</div>
+				<div style="margin-left: 10px;"><span class="num">2]</span> An small icon will apear on the taskbar system tray area.</div>
+				<div style="margin-left: 10px;"><span class="num">3]</span> Run the game.</div>
+				<div style="margin-left: 10px;"><span class="num">4]</span> Use the hotkeys described in this document in the game window to start/stop clicker or open the settings dialog.</div>
+				<div class="h4">Hotkeys:</div>
+				<div style="margin-left: 10px;"><span class="num">[F6]</span> - Start bot mode</div>
+				<div style="margin-left: 10px;"><span class="num">[F7]</span> - Start right-click mode</div>
+				<div style="margin-left: 10px;"><span class="num">[F8]</span> - Stop clicker</div>
+				<div style="margin-left: 10px;"><span class="num">[F9]</span> - Open settings window</div>
+				<div style="margin-left: 10px;"><span class="num">[SHIFT+F9]</span> - Open advanced settings window (<i>Elite version only</i>)</div>
+				<div style="margin-left: 10px;"><span class="num">[F10]</span> - Start new instance of the game (<i>Elite version only</i>)</div>
+				<div style="margin-left: 10px;"><span class="num">[F11]</span> - Switch between game instances (<i>Elite version only</i>)</div>
+				<div style="margin-left: 10px;"><span class="num">[F12]</span> - Show/Hide game</div>
+
+				<h3>Settings Window</h3>
+				<img style="margin-left: 10px;" src="images/SettingsWindow.jpg"/>
+				<div style="margin-left: 10px; margin-top: 10px;">When the settings window is open the game screen will go black. It will turn back to normal when the window is closed. The settings window will not open if one of the 'bot' or 'right-click' modes is active.</div>
+
+				<div class="h4">General Settings:</div>
+				<div style="margin-left: 10px; margin-top: 5px;">These options will have effect only in bot mode (Hotkey: [F6]). General parameters have effect for all game character classes.</div>
+
+				<div class="h5">Enable auto-pick-up (press 'SPACE')</div>
+				<div style="margin-left: 10px;">When this option is checked a SPACE key event will be generated every one second while the 'bot' mode is active. This will pick up items, jewels and zen from the ground.</div>
+				<div class="note"><span class="note_title">NOTE:</span> This option will have no effect if the 'advaced pick-up' option in the 'Elite' version is enabled.</div>
+				
+				<div class="h5">Enable auto-repair</div>
+				<div style="margin-left: 10px;">When this option is active the clicker will open the inventory and repair the weapon(s), armors and rings each 15 minutes while running in 'bot' mode.</div>
+
+				<div class="h5">Enable auto-heal (press 'Q')</div>
+				<div style="margin-left: 10px;">When this option is active a 'Q' key will be pressed at specified interval while the bot is active.</div>
+
+				<div class="h5">Auto-heal time</div>
+				<div style="margin-left: 10px;">Sets the time interval at which 'Q' key event will be generated.</div>
+
+				<div class="h5">Stealth options (<i>Elite version only</i>)</div>
+				<div style="margin-left: 10px;">This option enables certain bot actions to fool the GM's that a human user is currently playing.</div>
+				<br/>
+				<div style="margin-left: 10px;"><span class="enum">Auto-speak</span> - The bot will automatically reply if someone speaks near your character. The bot will pick a random sentence from the 'autosay.txt' file located in the folder where MU AutoClicker is installed.</div>
+				<div style="margin-left: 10px;"><span class="enum">Stop zen pick-up</span> - The bot will suspend the auto-pick-up of zen if meets another character and will resume the pick-up of zen when the other character disappears.</div>
+				<div style="margin-left: 10px;"><span class="enum">Stop move-to-pick</span> - The bot will pick-up only the items near your character if another player is within your character's sight.</div>
+				<div style="margin-left: 10px;"><span class="enum">Stop all pick-up</span> - The bot will suspend the auto-pick-up if meets another character and will resume the auto-pick-up when the other character disappears.</div>
+				<br/>
+				
+				<div class="h5">Auto-type '/re off' command (<i>Elite version only</i>)</div>
+				<div style="margin-left: 10px;">If this option is enabled a '/re off' command will be typed on entering, and '/re on' command will be typed when leaving 'bot' mode.</div>
+
+				<div class="h5">Exit game at level 400 (<i>Elite version only</i>)</div>
+				<div style="margin-left: 10px;">If this option is enabled the bot will automaticaly close the game client when the character reaches level 400.</div>
+
+
+				<div class="h4">Class Settings:</div>
+				<div style="margin-left: 10px;">This section describes specific settings per player character class.</div>
+
+				<div class="h5">Character Class</div>
+				<div style="margin-left: 10px;">Sets the active character class.</div>
+
+
+				<div class="h5i">Dark Lord Settings</div>
+				<div style="margin-left: 10px;">The Dark Lord will attack at random locations on the screen with the configured attack skill, perodically using 'Critical Damage' and 'Earthquake' skills if enabled.</div>
+
+				<div class="h6">Attack skill slot</div>
+				<div style="margin-left: 20px;">Specify which is the in game hotkey for selecting the desired attack skill (usually 'Fire Burst').</div>
+
+				<div class="h6">'Critical Damage' skill slot</div>
+				<div style="margin-left: 20px;">Specify which is the in game hotkey for selecting the 'Critical Damage' skill. You can switch on/off auto-casting of the skill with the checkbox control to the right of the slot selection option. When checked the 'Critical Damage' skill will be used each 30 seconds when running in 'bot' mode.</div>
+
+				<div class="h6">Dark horse skill slot</div>
+				<div style="margin-left: 20px;">Specify which is the in game hotkey for selecting the 'Erthquake' skill of the dark horse. You can switch on/off auto-casting of the skill with the checkbox control to the right of the  slot selection option. When checked the 'Earthquake' skill will be used each 15 seconds when running in 'bot' mode.</div>
+
+				<div class="h6">No-click margin from screen edge</div>
+				<div style="margin-left: 20px;">In 'bot' mode the software sends mouse click events at random locations of the game screen. This parameter sets a border with specified size from the screen edge in which the clicker will not generate mouse events. This will decrease distance at which the character will attack. The range of the attack skills usualy do not cover the whole screen and the character automatically moves towards distant targets. Increasing the value of this parameter will prevent such unwanted movements.</div>
+				<br/>
+				<div style="margin-left: 20px;">When neigther of the 'Critical Damage' nor 'Earthquake' skills is enabled the bot will attack with the last in game selected skill, not with the specified in the 'Attack skill slot' parameter.</div>
+
+
+				<div class="h5i">Energy Elf Settings</div>
+				<div style="margin-left: 10px;">The Energy Elf will periodically cast 'Greater Damage', 'Greater Defence' and 'Heal' skills (whichever is enabled) over specified number of party members including itself. If no party members are selected the Energy Elf will cast the skills only on itself.</div>
+
+				<div class="h6">Damage skill slot</div>
+				<div style="margin-left: 20px;">Specify which is the in game hotkey for selecting the 'Greater Damage' skill. You can switch on/off auto-casting of the skill with the checkbox control to the right of the slot selection option.</div>
+
+				<div class="h6">Defence skill slot</div>
+				<div style="margin-left: 20px;">Specify which is the in game hotkey for selecting the 'Greater Defence' skill. You can switch on/off auto-casting of the skill with the checkbox control to the right of the slot selection option.</div>
+
+				<div class="h6">Healing skill slot</div>
+				<div style="margin-left: 20px;">Specify which is the in game hotkey for selecting the 'Heal' skill. You can switch on/off auto-casting of the skill with the checkbox control to the right of the slot selection option.</div>
+
+				<div class="h6">Party members</div>
+				<div style="margin-left: 20px;">Specify the number of party members to buff.</div>
+
+				
+				<div class="h5i">Agility Elf Settings</div>
+				<div style="margin-left: 10px;">The Agility Elf will automatically rotate and shoot using the 'Tripple Shot' skill of the equpped bow or crossbow.</div>
+
+				<div class="h6">'Tripple Shot' skill slot</div>
+				<div style="margin-left: 20px;">Specify which is the in game hotkey for selecting the 'Tripple Shot' skill of the equpped bow or crossbow. It can be set to the hotkey for the 'Penetration' skill thought it is not so effective as the 'Tripple Shot'. 'Ice Arrow' skill is not supported yet as it requres a right click on the target to work.</div>
+				
+				<div class="h6">'Infinity Arrow' skill slot</div>
+				<div style="margin-left: 20px;">Specify which is the in game hotkey for selecting the 'Infinity Arrow' skill. You can switch on/off auto-casting of the skill with the checkbox control to the right of the slot selection option. The bot will cast this skill each 30 seconds to prevent arrows/bolts to deplete.</div>
+				
+				<div class="h6">Change attack direction time</div>
+				<div style="margin-left: 20px;">This parameter specifies the time to shoot in one direction. After the specified number of milliseconds elapse the Agility Elf will rotate to next shooting direction.</div>
+				
+				<br/>
+				<div style="margin-left: 20px;">When the 'Infinity Arrow' skill is not enabled the bot will attack with the last in game selected skill.</div>
+
+
+				<div class="h5i">Blade Knight Settings</div>
+				<div style="margin-left: 10px;">The Blade Knight will attack all targets within a specified distance with selected skill, periodically casting 'Greater Fortitude' skill.</div>
+				
+				<div class="h6">Attack skill slot</div>
+				<div style="margin-left: 20px;">Specify which is the in game hotkey for selecting the desired attack skill (can be 'Twisting Slash', 'Rageful Blow', 'Death Stab', etc. ).</div>
+				
+				<div class="h6">'Greater Fortitude' skill slot</div>
+				<div style="margin-left: 20px;">Specify which is the in game hotkey for selecting the 'Greater Fortitude' skill. You can switch on/off auto-casting of the skill with the checkbox control to the right of the slot selection option. When checked the 'Greater Fortitude' skill will be used each 30 seconds when running in 'bot' mode.</div>
+				
+				<div class="h6">Attack distance</div>
+				<div style="margin-left: 20px;">In 'bot' mode the software sends mouse click events at random locations of the game screen. This parameter sets the maximum distance from the character position in pixels at which the clicker can generate mouse events. As the attack distance of most of the skills is not very long, increasing this value may lead to unwanted character movement across the screen to reach the selected target.</div>
+
+
+				<div class="h5i">Dark Wizard Settings</div>
+				<div style="margin-left: 10px;">The Dark Wizard will attack all targets on screen with selected skill, periodically casting 'Mana Shield' skill.</div>
+				
+				<div class="h6">Attack skill slot</div>
+				<div style="margin-left: 20px;">Specify which is the in game hotkey for selecting the desired attack skill (can be the mostly used 'Evil Spirits' or 'Ice Storm', 'Death&amp;Decay', 'Power Wave', 'Lightning' etc. ).</div>
+				
+				<div class="h6">'Mana Shield' skill slot</div>
+				<div style="margin-left: 20px;">Specify which is the in game hotkey for selecting the 'Mana Shield' skill (a.k.a. 'Sould Barrier'). You can switch on/off auto-casting of the skill with the checkbox control to the right of the slot selection option. When checked the 'Mana Shield' skill will be used each 30 seconds when running in 'bot' mode.</div>
+				
+				<div class="h6">Attack distance</div>
+				<div style="margin-left: 20px;">In 'bot' mode the software sends mouse click events at random locations of the game screen. This parameter sets the maximum distance from the character position in pixels at which the clicker can generate mouse events. As the attack distance of most of the skills is not very long, increasing this value may lead to unwanted character movement across the screen to reach the selected target.</div>
+
+
+				<div class="h5i">Magic Gladiator Settings</div>
+				<div style="margin-left: 10px;">The Magic Gladiator will rotate and attack with last in game selected skill.</div>
+				
+				<div class="h6">Change attack direction time</div>
+				<div style="margin-left: 20px;">This parameter specifies the time to attack in one direction. After the specified number of milliseconds elapse the Magic Gladiator will rotate to next attack direction. This parameter is useful when using 'Power Slash' skill. It has no effect when attacking with 'Evil Spirits' skill.</div>
+
+
+				<h3>Advanced Settings Window</h3>
+				<img style="margin-left: 10px;" src="images/AdvancedSettings.png"/>
+				<div style="margin-left: 10px; margin-top: 10px;">When the advanced settings window is open the game screen will go black. It will turn back to normal when the window is closed. The settings window will not open if one of the 'bot' or 'right-click' modes is active.</div>
+
+				<div class="h4">Enable advanced pick-up</div>
+				<div style="margin-left: 10px;">When checked it will override the 'Enable auto pick-up' setting from the main settings window and will enable pick-up only for the selected items from the list below.</div>
+				
+				<div class="h5">Pick</div>
+				<div style="margin-left: 10px;">Enable/Disable auto-pick of the specified item.</div>
+
+				<div class="h5">Move To</div>
+				<div style="margin-left: 10px;">If enabled the character will move to the item coordinates, pick the item and then return back to spot. If not enabled the character will pick only the items that are in close range.</div>
+				<br/>
+				
+				<h3>Command Line Interface (<i>Elite version only</i>)</h3>
+				<div style="margin-left: 10px; margin-top: 10px;">The bot will accept commands via chat messages in the following format: <br/>//[command] [arguments]</div>
+				<div style="margin-left: 10px;">To use the command line interface just press ENTER for a regular chat message and use the commands listed below.</div>
+
+        <div class="h5">//autopick &lt;on|off&gt; </div>
+        <div style="margin-left: 10px;">Turn on/off automatic pick-up </div>
+
+        <div class="h5">//autosay &lt;on|off&gt; </div>
+        <div style="margin-left: 10px;">Turn on/off automatic reply if another character speaks near your hero </div>
+
+        <div class="h5">//die </div>
+        <div style="margin-left: 10px;">Just funny :) Your hero do not really die on the server side. </div>
+
+        <div class="h5">//exit400 &lt;on|off&gt; </div>
+        <div style="margin-left: 10px;">Turn on/off automatic exit from game on level 400 </div>
+
+        <div class="h5">//help </div>
+        <div style="margin-left: 10px;">Displays list of commands </div>
+
+        <div class="h5">//pdist &lt;distance&gt; </div>
+        <div style="margin-left: 10px;">Sets the maximum distance to pick up an item </div>
+
+        <div class="h5">//pick [&lt;item code high&gt; &lt;item code low&gt;|clear] </div>
+        <div style="margin-left: 10px;">Adds a custom item code to the pick-up list or clears the pick-up list </div>
+
+				<br/>
+				<div style="margin-left: 10px;">Please find below some examples of this command:</div>				
+				<div style="margin-left: 10px;">'//pick 15 16' - Add for auto-pick Scroll of Decay</div>
+				<div style="margin-left: 10px;">'//pick 14 41' - Add for auto-pick Gem Stone</div>
+				
+        <div class="h5">//run &lt;script filename&gt; </div>
+        <div style="margin-left: 10px;">Runs a script in a text file. The filename must be written with the file extension and can contain a directory path relative to the clicker's executable folder. This command will execute the script imediatelly even if there is another character near your hero. </div>
+
+        <div class="h5">//set_pick_opt &lt;bless|soul|chaos|joc|jog|jol|exl|zen&gt; &lt;on|off&gt; &lt;on|off&gt; </div>
+        <div style="margin-left: 10px;">Sets the pick and move-to options for items (used by the GUI). For example to make the bot move to jewels of bless and pick them use: '//set_pick_opt bless on on'; to make the bot pick blesses without moving to them use: '//set_pick_opt on off'. </div>
+        <div style="margin-left: 10px;">This command outputs no messages. </div>
+
+        <div class="h5">//set_stealth_opt &lt;susp_zen_pick|susp_move_pick|susp_pick&gt; &lt;on|off&gt; </div>
+        <div style="margin-left: 10px;">Sets the stealth settings. These settings have effect when another character approaches your hero and are used to conseal the fact that you are using a bot. </div>
+
+        <div class="h5">//script &lt;load [filename]|on|off|toggle&gt; </div>
+        <div style="margin-left: 10px;">Loads/starts/stops a script. The script will not execute automatically on load you have to use //script on, //script off to start or stop it. The script will pause automatically if another character approaches your hero. You can use the partners.txt file to select which characters you trust. The script will not pause if your hero meets a character from the trusted list.</div>
+
+<div class="h5">//drop [&lt;item code high&gt; &lt;item code low&gt;|clear] </div>
+<div style="margin-left: 10px;">Adds a specific item to be automatically dropped when picked or clears the list of auto-drop items. This option will have effect only if the //autopick setting is 'on' (e.g. when the bot is running). It is useful to get rid of items like hearts, firecrackers, boxes of luck etc. that create an item when dropped. </div>
+
+<div class="h5">//itemcode &lt;on|off&gt; </div>
+<div style="margin-left: 10px;">Use to display the code of an item when placed to the inventory. Yes, you can see the item codes with this option switched on. </div>
+
+<div class="h5">//fmove &lt;on|off&gt; </div>
+<div style="margin-left: 10px;">Use it to move faster across the map. </div>
+				<br/>				
+
+				<h3>Script Interface (<i>Elite version only</i>)</h3>
+				<div style="margin-left: 10px; margin-top: 10px;">The bot can execute simple scripts. Scripts can be used to automate the task of manually adding custom items for pick-up. Scripting language is very simple and can be learned by the following example: <a href="script_example.txt" target="_blank">script_example.txt</a></div>
+				<div style="margin-left: 10px; margin-top: 10px;">Script files must be placed in the bot folder or subfolder and can be loaded and executed with the following command:</div>
+				<div class="h5">//run [relative path to script file]</div>
+				<br/>
+            </div>
+        </div>
+        <div class="footer">
+        Copyright 2010 &#x00A9; Kalin Temelkov
+        </div>
+        <br/>
+    </center>
+</body>
+</html>

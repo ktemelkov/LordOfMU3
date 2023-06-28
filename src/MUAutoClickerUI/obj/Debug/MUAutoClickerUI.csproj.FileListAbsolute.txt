@@ -1,0 +1,10 @@
+C:\Users\ktemelkov.HILSCHERDTC\Projects\Personal\LordOfMU3\src\MUAutoClickerUI\bin\Debug\MUAutoClickerUI.dll
+C:\Users\ktemelkov.HILSCHERDTC\Projects\Personal\LordOfMU3\src\MUAutoClickerUI\bin\Debug\MUAutoClickerUI.pdb
+C:\Users\ktemelkov.HILSCHERDTC\Projects\Personal\LordOfMU3\src\MUAutoClickerUI\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\ktemelkov.HILSCHERDTC\Projects\Personal\LordOfMU3\src\MUAutoClickerUI\obj\Debug\MUAutoClickerUI.Form1.resources
+C:\Users\ktemelkov.HILSCHERDTC\Projects\Personal\LordOfMU3\src\MUAutoClickerUI\obj\Debug\MUAutoClickerUI.Properties.Resources.resources
+C:\Users\ktemelkov.HILSCHERDTC\Projects\Personal\LordOfMU3\src\MUAutoClickerUI\obj\Debug\MUAutoClickerUI.csproj.GenerateResource.Cache
+C:\Users\ktemelkov.HILSCHERDTC\Projects\Personal\LordOfMU3\src\MUAutoClickerUI\obj\Debug\MUAutoClickerUI.dll
+C:\Users\ktemelkov.HILSCHERDTC\Projects\Personal\LordOfMU3\src\MUAutoClickerUI\obj\Debug\MUAutoClickerUI.pdb
+C:\Users\ktemelkov.HILSCHERDTC\Projects\Personal\LordOfMU3\bin\Debug\MUAutoClickerUI.dll
+C:\Users\ktemelkov.HILSCHERDTC\Projects\Personal\LordOfMU3\bin\Debug\MUAutoClickerUI.pdb

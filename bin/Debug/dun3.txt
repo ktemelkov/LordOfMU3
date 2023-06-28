@@ -1,0 +1,64 @@
+;
+;
+
+:msg >> Script started ...
+
+:delay 100
+
+:say //multihit 0
+:say //hdist 3
+:say //pdist 4
+:say //hda 10
+:say //hd 0
+:say //autopick on
+:say //autosay on
+:say //autokill on
+
+:repeat
+	:delay 100
+	
+	:move_if_no_target 9 123
+	:move_if_no_target 10 123
+	:move_if_no_target 11 123
+	:move_if_no_target 12 123
+	:move_if_no_target 13 123
+	:move_if_no_target 14 123
+	:move_if_no_target 15 123
+	:move_if_no_target 16 123
+	:move_if_no_target 17 123
+	:move_if_no_target 18 123
+	:move_if_no_target 19 123
+	:move_if_no_target 20 123
+	:move_if_no_target 21 123
+	:move_if_no_target 22 123
+	:move_if_no_target 23 123
+	:move_if_no_target 24 123
+	:move_if_no_target 25 123
+	:move_if_no_target 26 123
+	:move_if_no_target 27 123
+	:move_if_no_target 28 123
+	:move_if_no_target 29 123
+	:move_if_no_target 30 123
+
+	:move_if_no_target 29 123
+	:move_if_no_target 28 123
+	:move_if_no_target 27 123
+	:move_if_no_target 26 123
+	:move_if_no_target 25 123
+	:move_if_no_target 24 123
+	:move_if_no_target 23 123
+	:move_if_no_target 22 123
+	:move_if_no_target 21 123
+	:move_if_no_target 20 123
+	:move_if_no_target 19 123
+	:move_if_no_target 18 123
+	:move_if_no_target 17 123
+	:move_if_no_target 16 123
+	:move_if_no_target 15 123
+	:move_if_no_target 14 123
+	:move_if_no_target 13 123
+	:move_if_no_target 12 123
+	:move_if_no_target 11 123
+	:move_if_no_target 10 123
+
+:loop -1

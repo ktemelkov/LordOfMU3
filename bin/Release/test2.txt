@@ -1,0 +1,20 @@
+
+:lock
+
+:move 213 246
+
+:sleep 3000
+
+:move 242 240
+
+:sleep 3000
+
+:move 14 225
+
+:sleep 3000
+
+:move 61 161
+
+:sleep 3000
+
+:unlock

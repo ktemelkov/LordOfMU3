@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="Lord Of MU" default="buildAll">
+
+	<property name="devenv" value="${environment::get-variable('VS90COMNTOOLS')}..\IDE\devenv.com"/>	
+  <property name="act_version_h" value="src\_Shared\version.h"/>
+	<property name="solution_filename" value="LordOfMU.sln"/>
+	<property name="executable_name" value="MUAutoClicker.exe"/>
+  <property name="build_config" value="Release"/>		
+	
+	
+	<!--
+	-->
+	<script language="C#" prefix="regex">
+		<code>
+			<imports>
+				<import namespace="System.Text.RegularExpressions"/>
+			</imports>
+			<![CDATA[
+				[Function("replace")]
+				public static string RegexReplace(string pSource, string pSearch, string pReplace)
+				{
+					RegexOptions options = RegexOptions.IgnoreCase | RegexOptions.Multiline;
+					Regex re = new Regex(pSearch, options);
+					return re.Replace(pSource, pReplace);
+				}
+			]]>
+		</code>
+	</script> 
+	
+	<!--
+	
+	-->
+	<target name="config">		
+		<loadfile file="${act_version_h}" property="version_file_contents"/>
+		<regex pattern="#define\s+__SOFTWARE_VERSION\s+(?'version_major'\d+),(?'version_minor'\d+),(?'version_build'\d+),(?'version_revision'\d+)" input="${version_file_contents}"/>
+		
+		<property name="new_build_number" value="${string::substring(datetime::get-year(datetime::now()), 2, 2)}${string::pad-left(datetime::get-month(datetime::now()), 2, '0')}"/>
+		<property name="new_build_revision" value="${string::pad-left(datetime::get-day(datetime::now()), 2, '0')}"/>
+			
+		<choose>
+			<when test="${new_build_number != version_build or new_build_revision != string::substring(version_revision,0,2)}">
+				<property name="version_build" value="${new_build_number}"/>
+				<property name="version_revision" value="${new_build_revision}${string::substring(version_revision,2,1)}00"/>
+			</when>
+			<otherwise>
+				<property name="version_revision" value="${string::pad-left(int::to-string(int::parse(version_revision) + 1), 5, '0')}"/>			
+			</otherwise>
+		</choose>
+		
+		<property name="version_number"  value="${version_major}.${version_minor}.${version_build}.${version_revision}"/>
+		<property name="version_number2"  value="${version_major},${version_minor},${version_build},${version_revision}"/>
+		
+		<property name="expr" value="(#define\s+__SOFTWARE_VERSION\s+)\d+,\d+,\d+,\d+" />
+		<property name="version_file_contents" value="${regex::replace(version_file_contents, expr, '${1}' + version_number2)}" />
+		
+		<property name="expr" value="(#define\s+__SOFTWARE_VERSION_STR\s+&quot;)\d+\.\d+\.\d+\.\d+&quot;" />
+		<property name="version_file_contents" value="${regex::replace(version_file_contents, expr, '${1}' + version_number + '&quot;' )}" />
+		
+		<property name="expr" value="([v|V])\d+\.\d+" />
+		<property name="version_file_contents" value="${regex::replace(version_file_contents, expr, '${1}' + version_major + '.' + version_minor)}" />
+
+		<property name="expr" value="(__SOFTWARE_COPYRIGHT\s+&quot;)\d+" />
+		<property name="copyright_year" value="${datetime::get-year(datetime::now())}"/>
+		<property name="version_file_contents" value="${regex::replace(version_file_contents, expr, '${1}' + copyright_year)}" />
+		
+    <echo file="${act_version_h}">${string::trim(version_file_contents)}</echo>
+</target>
+
+
+	<!--
+	-->
+	<target name="clean">
+		<exec program="${devenv}" verbose="True">
+		   <arg value="${solution_filename}"/>
+		   <arg value="/clean"/>
+		   <arg value="&quot;${build_config}&quot;"/>
+		</exec>
+		
+		<delete file="bin/${build_config}/MUAutoClicker.exe"/>
+	</target>
+
+
+	<!--
+	-->
+	<target name="compile">
+		<exec program="${devenv}" verbose="True">
+		   <arg value="${solution_filename}"/>
+		   <arg value="/rebuild"/>
+		   <arg value="&quot;${build_config}&quot;"/>
+		</exec>
+	</target>
+
+
+	<!--
+	-->
+	<target name="tag">
+		<if test="${not directory::exists('tags')}">
+			<mkdir dir="tags"/>
+		</if>
+		
+		<zip zipfile="tags/MUAtuoClicker v${version_number} Sources.zip" ziplevel="9">
+			<fileset basedir="src" prefix="src">
+				<include name="**/*" />
+				<exclude name="**/*.aps" />
+				<exclude name="**/*.user" />
+			</fileset>
+			<fileset basedir="doc" prefix="doc">
+				<include name="**/*" />
+			</fileset>
+			<fileset basedir=".">
+				<include name="LordOfMU.sln" />
+				<include name="Setup.build" />
+			</fileset>
+		</zip>
+	</target>
+
+
+	<!--
+	-->
+	<target name="build">
+		<call target="config" />
+		<call target="compile" />
+		<call target="tag" />
+	</target>
+
+
+	<!--
+	-->
+	<target name="buildClicker">
+		<call target="build" />
+
+		<copy todir="bin/${build_config}" overwrite="true">
+			<fileset basedir="doc">
+				<include name="**/*" />			
+				<exclude name="**/.svn" />
+			</fileset>
+		</copy>
+		
+  </target>
+
+
+	<!--
+	-->
+	<target name="packClicker">		
+	
+		<if test="${not directory::exists('deploy')}">
+			<mkdir dir="deploy"/>
+		</if>
+
+    <move todir="bin/Tools" overwrite="true">
+			<fileset basedir="bin/${build_config}">
+				<include name="MUAutoClicker.dll" />
+				<include name="MUEliteClicker.dll" />
+				<include name="MACLocator.dll" />
+				<include name="Bootstrapper.dll" />
+				<include name="LspInstaller.dll" />
+			</fileset>
+    </move>
+
+		<exec program="bin/Tools/packer.exe" verbose="True">
+		   <arg value="/packall"/>
+		</exec>
+    
+		<sleep hours="0" minutes="0" seconds="5" milliseconds="0" />		
+
+
+    <delete>
+        <fileset>
+            <include name="bin/Tools/MUAutoClicker.dll" />
+            <include name="bin/Tools/MUEliteClicker.dll" />
+            <include name="bin/Tools/MACLocator.dll" />
+            <include name="bin/Tools/LspInstaller.dll" />
+        </fileset>
+    </delete>
+
+    <move todir="bin/${build_config}" overwrite="true">
+			<fileset basedir="bin/Tools">
+				<include name="Bootstrapper.dll" />
+			</fileset>
+    </move>
+
+		<copy todir="bin/${build_config}" overwrite="true">
+			<fileset basedir="bin/old">
+				<include name="**/*" />			
+				<exclude name="**/.svn" />
+			</fileset>
+		</copy>
+		
+		<delete dir="bin/${build_config}/log" />
+<!--
+    <delete>
+        <fileset>
+            <include name="bin/${build_config}/*.dat" />
+            <include name="bin/${build_config}/*.bin" />
+            <include name="bin/${build_config}/LspInstaller.dll" />
+        </fileset>
+    </delete>
+-->
+<!--  
+		<exec program="bin/Tools/mpress.exe" verbose="True">
+		   <arg value="-r"/>
+		   <arg value="bin/${build_config}/MUAutoClicker.exe.o"/>
+		</exec>
+-->
+		
+		<move file="bin/${build_config}/MUAutoClicker.exe.o" tofile="bin/${build_config}/MUAutoClicker.exe" overwrite="true" failonerror="true"/>
+		
+		<zip zipfile="deploy/MUAutoClicker_v${version_number}.zip" ziplevel="9">
+			<fileset basedir="bin/${build_config}"  prefix="MUAutoClicker">
+<!--				<include name="**/*" /> -->
+				<include name="help/*" />
+				<include name="MUAutoClicker.exe" />
+				<include name="bootstrapper.dll" />
+				<include name="autosay.ini" />
+				<include name="autosay.txt" />
+				<include name="partners.txt" />
+				<include name="script_example.txt" />
+
+<!--				<exclude name="old/*" />
+				<exclude name="log/*" />
+				<exclude name="InjectorTest.exe" />
+				<exclude name="packer.exe" />
+				<exclude name="mpress.exe" />
+				<exclude name="instlsp.exe" />
+				<exclude name="MACLocator.dll" />
+				<exclude name="LspInstaller.dll" />
+				<exclude name="LspDecrypt.bin" />
+				<exclude name="*.dat" />
+				<exclude name="test.txt" /> -->
+ 			</fileset>
+		</zip>
+		
+	</target>
+
+	<!--
+	-->
+	<target name="buildAll">
+		<call target="buildClicker" />
+		<call target="packClicker" />
+	</target>
+
+</project>

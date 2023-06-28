@@ -1,0 +1,167 @@
+#ifndef __MU_WINDOW_H
+#define __MU_WINDOW_H
+
+#pragma once
+
+#include "SettingsDlg.h"
+#include "ClickerJob.h"
+#include "LaunchMuDialog.h"
+#include "AdvSettingsDialog.h"
+#include "../_Shared/MuMessages.h"
+
+
+typedef SHORT (WINAPI *GetAsyncKeyStatePtr)(int vKey);
+typedef LONG (WINAPI* ChangeDisplaySettingsAPtr)(LPDEVMODEA lpDevMode, DWORD dwflags);
+typedef HWND (WINAPI *GetForegroundWindowPtr)();
+
+
+
+/**
+ * \brief 
+ */
+class CMuWindow 
+	: public CWindowImpl<CMuWindow>
+{
+protected:
+	CMuWindow();
+	virtual ~CMuWindow();
+
+public:
+	static BOOL Init(HWND hwndMuWindow, int iInstanceNumber);
+	static void Term();
+	static CMuWindow* GetInstance() { return s_pInstance; }
+	
+	static void DoLogin(const char* pszPass);
+	static void SetFeatures(DWORD dwFeatures);
+	static void SetConnected();
+
+	ULONG GetVersion() { return m_ulVersion; }
+	void SayToServer(const char* buf);
+
+protected:
+	BEGIN_MSG_MAP(CMuWindow)
+		MESSAGE_RANGE_HANDLER(WM_MOUSEFIRST, WM_MOUSELAST, OnMouseMessage)
+		MESSAGE_HANDLER(WM_ACTIVATEAPP, OnActivateApp)
+		MESSAGE_HANDLER(WM_ACTIVATE, OnActivate)
+		MESSAGE_HANDLER(WM_NCACTIVATE, OnNCActivate)
+		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
+		MESSAGE_HANDLER(WM_MUWND_INITIALIZE, OnInitMuWindow)
+		MESSAGE_HANDLER(WM_IS_CLICKER_INSTALLED, OnIsClickerInstalled)
+		MESSAGE_HANDLER(WM_SETCURSOR, OnSetCursor)
+		MESSAGE_HANDLER(WM_ERASEBKGND, OnErasebkgnd)
+		MESSAGE_HANDLER(WM_SHOW_SETTINGS_GUI, OnShowSettingsGUI)
+		MESSAGE_HANDLER(WM_START_CLICKER, OnStartClicker)
+		MESSAGE_HANDLER(WM_STOP_CLICKER, OnStopClicker)
+		MESSAGE_HANDLER(WM_CLICKER_JOB_FINISHED, OnClickerJobFinished)
+		MESSAGE_HANDLER(WM_CLICKER_JOB_MOUSEMOVE, OnClickerMouseMove)
+		MESSAGE_HANDLER(WM_CLICKER_JOB_RBUTTONDOWN, OnClickerRButtonDown)
+		MESSAGE_HANDLER(WM_CLICKER_JOB_RBUTTONUP,   OnClickerRButtonUp)
+		MESSAGE_HANDLER(WM_CLICKER_JOB_LBUTTONDOWN, OnClickerLButtonDown)
+		MESSAGE_HANDLER(WM_CLICKER_JOB_LBUTTONUP,   OnClickerLButtonUp)
+		MESSAGE_HANDLER(WM_LAUNCH_MU, OnLaunchMu)
+		MESSAGE_HANDLER(WM_SWITCH_INSTANCE, OnSwitchMuInstance)
+		MESSAGE_HANDLER(WM_SHOW_MU, OnShowMu)
+		MESSAGE_HANDLER(WM_HIDE_MU, OnHideMu)
+		MESSAGE_HANDLER(WM_CAPTURECHANGED, OnCaptureChanged)
+		MESSAGE_HANDLER(WM_SET_GAME_VERSION, OnSetVersion)
+		MESSAGE_HANDLER(WM_TIMER, OnTimer)
+		MESSAGE_HANDLER(WM_SEND_RETURN, OnSendReturn)
+		MESSAGE_HANDLER(WM_SEND_KEY, OnSendKey)
+		MESSAGE_HANDLER(WM_SELECT_CHAR, OnSelectChar)		
+	END_MSG_MAP()
+
+protected:
+	LRESULT OnInitMuWindow(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnIsClickerInstalled(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnMouseMessage(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnActivateApp(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnActivate(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnDestroy(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnErasebkgnd(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnShowSettingsGUI(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnStartClicker(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnStopClicker(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnClickerJobFinished(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnSendReturn(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnSendKey(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnSelectChar(UINT, WPARAM, LPARAM, BOOL&);
+	
+	LRESULT OnSetCursor(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+	{
+		//bHandled = FALSE;
+		return 1;
+	}
+
+	LRESULT OnClickerMouseMove(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnClickerRButtonDown(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnClickerRButtonUp(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnClickerLButtonDown(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnClickerLButtonUp(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnLaunchMu(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnSwitchMuInstance(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnShowMu(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnHideMu(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnNCActivate(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnCaptureChanged(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnSetVersion(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnTimer(UINT, WPARAM, LPARAM, BOOL&);
+
+protected:
+	BOOL OnKeyboardEvent(UINT vkCode, UINT uMsg, BOOL fCheckFgWnd = TRUE);
+	void LaunchMU();
+	void PatchProcessMemory(HANDLE hProcess, char patchByte, const char* szMutexName);
+
+	BOOL SubclassWindow2(HWND);
+	HWND UnsubclassWindow2();
+
+	static BOOL CALLBACK FindPasswordWnd(HWND,LPARAM);
+
+	struct SelCharThreadParam
+	{
+		int x;
+		int y;
+		HANDLE hThread;
+	};
+
+	static LRESULT CALLBACK SelectCharThread(SelCharThreadParam* pParam);
+
+public:
+	static SHORT WINAPI MyGetAsyncKeyStateHook(int vk, int orig);
+	static LONG WINAPI MyChangeDisplaySettingsA(LPDEVMODEA, DWORD);
+	static HWND WINAPI MyGetForegroundWindow(VOID);
+
+	static ChangeDisplaySettingsAPtr ChangeDisplaySettingsA;
+	static GetForegroundWindowPtr GetForegroundWindowTr;
+
+
+protected:	
+	BOOL m_fIsWndActive;
+	BOOL m_fBlockInput;
+	BOOL m_fGuiActive;
+	BOOL m_fWasLastActiveInstance;
+
+	int m_iInstanceNumber;
+
+	CSettingsDlg m_cSettingsDlg;
+	CLaunchMuDialog m_cLaunchMuDlg;
+	CAdvSettingsDialog m_cAdvSettingsDlg;
+
+private:
+	static CMuWindow* s_pInstance;
+	
+	ULONG m_ulVersion;
+	bool m_fWindow;
+
+	HWND m_hwndPassword;
+
+	CClickerJob* m_pClicker;
+	char* m_buffDevmode[sizeof(DEVMODEA)+0x1000];
+
+	struct FN_KEYS_T { int vk; bool fPressed; } m_vFnKeys[10];
+
+	bool m_fConnected;
+	bool m_fBypassKeyStateHook;
+};
+
+
+#endif //__MU_WINDOW_H

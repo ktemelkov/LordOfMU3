@@ -1,0 +1,191 @@
+    body
+    {
+      margin-top: 0px;
+      margin-left: 0px;
+      margin-right: 0px;
+      background-color: #610000;
+      background-image: url('../images/wallpaper.png');
+      background-repeat: no-repeat;
+      color: #FFFFFF;
+      font-weight: bold;
+      padding: 0 0 0 0;
+      font-size: 10pt;
+      font-family: Tahoma;
+    }
+    
+    #divMenu a
+    {
+      color: #FFFF99;
+    }
+  
+    #divMenu
+    {
+      display: none;
+      position: absolute;
+      left: 15px;
+      top: 100px;
+      height: 70px;
+      width: 185px;
+      font-size: 10pt;
+      font-weight: bold;
+      color: #0000FF;
+      text-align: center;
+      padding: 3px 3px 3px 3px;
+
+      background-image: url('../images/panel_bg2.png');
+      background-repeat: repeat;
+    }
+
+    .menuPanel
+    {
+      text-align: center;
+      padding: 5px 5px 5px 5px;
+      width: 178px;
+      height: 64px;
+      background-image: url('../images/panel_bg2.png');
+      background-repeat: repeat;
+      color: #FFFF99;
+      text-decoration: blink;
+    }    
+    
+    #divVersionInfo
+    {
+      position: absolute;
+      left: 15px;
+      top: 70px;
+      font-size: 12pt;
+      font-weight: bold;
+      color: #FFFFFF;
+      width: 285px;
+      text-align: right;
+      padding-right: 5px;
+
+      background-image: url('../images/panel_bg.png');
+      background-repeat: repeat;
+    }
+    
+    
+    #divPurchase
+    {
+      position: absolute;
+      left: 0px;
+      top: 110px;
+      font-size: 28pt;
+      font-weight: bold;
+      color: #0000FF;
+      width: 100%;
+      text-align: center;
+    }
+    
+    #divContent
+    {
+      position: absolute;
+      left: 10px;
+      top: 180px;
+      width: 580px;
+      height: 80px;
+
+      border-top: 1px solid #222222;
+      border-bottom: 1px dashed #9F9F9F;
+ 
+      background-image: url('../images/panel_bg.png');
+      background-repeat: repeat;
+   }
+    
+    #divDlgButtonsRight,
+    #divDlgButtonsLeft
+    {
+      position: absolute;
+      left: 10px;
+      top: 265px;
+      width: 580px;
+      height: 30px;
+    }
+
+    #divDlgButtonsRight
+    {
+      text-align: right;
+    }
+    
+    #divDlgButtonsLeft
+    {
+      text-align: left;
+    }
+
+    
+    #divMainTitle, 
+    #divMainTitleShadow,
+    #divMainTitleShadow2,
+    #divMainTitleShadow3,
+    #divMainTitleShadow4,
+    #divMainTitleShadow5    
+    {
+      position: absolute;
+      left: 15px;
+      top: 20px;
+      font-size: 28pt;
+      font-weight: bold;
+      color: #0000FF;
+      width: 290px;
+    }
+    
+    #divMainTitle
+    {
+    }
+
+    #divMainTitleShadow,
+    #divMainTitleShadow2,
+    #divMainTitleShadow3,
+    #divMainTitleShadow4,
+    #divMainTitleShadow5    
+    {
+      left: 14px;
+      top: 20px;
+      color: #FFFFFF;
+    }
+
+    #divMainTitleShadow2
+    {
+      left: 16px;
+    }
+
+    #divMainTitleShadow3
+    {
+      left: 15px;
+      top: 19px;
+    }
+
+    #divMainTitleShadow4
+    {
+      left: 15px;
+      top: 17px;
+      color: #000000;
+    }
+
+    #divMainTitleShadow5
+    {
+      left: 15px;
+      top: 21px;
+    }
+
+    .cmdButton
+    {
+      width: 80px; 
+      height: 25px;
+      
+      border: 1px solid #AA3300;
+      background-color: #770000;
+      cursor: hand;
+      color: #FFFFFF;
+      font-weight: bold;
+    }
+    
+    .textField
+    {
+      border: 1px solid #AA3300;
+      background-color: #552222;
+      cursor: hand;
+      color: #DDDDDD;
+      padding-left: 5px;
+    }
+    

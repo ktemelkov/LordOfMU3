@@ -1,0 +1,324 @@
+// code cave dll injection example by batfitch 
+// 2010-08-12 
+// if you use this code in your project please give credits, thanks 
+// feel free to spread this document 
+// original thread [url="http://www.uc-forum.com/forum/assembly/64730-asm-c-code-cave-dll-injection.html#post512892"]http://www.uc-forum.com/forum/assembly/ ... post512892[/url] 
+ 
+#define WIN32_LEAN_AND_MEAN 
+#define NOCOMM 
+ 
+#define _CRT_SECURE_NO_WARNINGS 
+#define _SCL_SECURE_NO_WARNINGS 
+ 
+#include <Windows.h> 
+#include <TlHelp32.h> 
+#include <Shlwapi.h> 
+#pragma comment(lib, "Shlwapi.lib") 
+ 
+#define BYTE_TYPE(x) __asm _emit x  
+#define WORD_TYPE(x) BYTE_TYPE((x>>(0*8))&0xFF)    BYTE_TYPE((x>>(1*8))&0xFF) 
+#define DWORD_TYPE(x) BYTE_TYPE((x>>(0*8))&0xFF) BYTE_TYPE((x>>(1*8))&0xFF) BYTE_TYPE((x>>(2*8))&0xFF) BYTE_TYPE((x>>(3*8))&0xFF) 
+ 
+#define LDR_DATA_START 0xAFAFAFAF 
+#define LDR_CODE_END 0xFAFAFAFA 
+ 
+PVOID SearchDWORD(PVOID Start, DWORD dwSearch) 
+{ 
+    register PVOID pAddr = Start; 
+ 
+    while(*(PDWORD)pAddr != dwSearch) 
+        ((PBYTE&)pAddr)++; 
+ 
+    return pAddr; 
+} 
+ 
+// the actual loader code 
+void __declspec(naked) loader(void) 
+{ 
+    __asm 
+    { 
+        // return address placeholder 
+        push 0xFFFFFFFF 
+ 
+        // save context 
+        pushfd 
+        pushad 
+ 
+        // get variables 
+        call temp 
+temp:     
+        pop ebp 
+        sub ebp, offset temp 
+        mov eax, dword ptr[ebp + pLoadLibrary] 
+        mov ebx, dword ptr[ebp + pszDllPath] 
+ 
+        // call loadlibrary 
+        push ebx 
+        call eax 
+ 
+        // store return value of loadlibrary 
+        mov dword ptr[ebp + pRetVal], eax 
+ 
+        // get return address 
+        mov eax,  dword ptr[ebp + pReturnAddr] 
+ 
+        // move return address to placeholder 
+        mov dword ptr[esp + 0x24], eax 
+ 
+        // restore context 
+        popad 
+        popfd 
+ 
+        // leave cave 
+        ret 
+ 
+        // needed variables (first is also data marker) 
+        pReturnAddr: DWORD_TYPE(LDR_DATA_START) 
+        pLoadLibrary: DWORD_TYPE(0xFFFFFFFF) 
+        pszDllPath: DWORD_TYPE(0xFFFFFFFF) 
+        pRetVal: DWORD_TYPE(0xFFFFFFFF) 
+ 
+         // end marker 
+         DWORD_TYPE(LDR_CODE_END) 
+    } 
+} 
+ 
+// returns true if everything went fine 
+// if the function succeeds pdwReturn is the return value of LoadLibraryA in the remote process 
+BOOL CodeCaveInjectDll(IN PCHAR szDllPath, IN DWORD dwProcessId, IN DWORD dwThreadId, OUT PDWORD pdwReturn) 
+{ 
+    BOOL bRet = FALSE; 
+ 
+    // get size of loader code 
+    DWORD dwSizeLoader = (DWORD)SearchDWORD(loader, LDR_CODE_END) - (DWORD)loader; 
+ 
+    // allocate local buffer for loader code 
+    PVOID pLdrCode = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwSizeLoader); 
+    memcpy(pLdrCode, loader, dwSizeLoader); 
+ 
+    // get pointer to first data variable (pReturnAddr) 
+    PDWORD pData = (PDWORD)SearchDWORD(pLdrCode, LDR_DATA_START); 
+ 
+    // fill pLoadLibrary data 
+    pData[1] = (DWORD)LoadLibraryA; 
+ 
+    // open target process 
+    if (HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION 
+        | PROCESS_VM_READ 
+        | PROCESS_VM_WRITE, FALSE, dwProcessId)) 
+    { 
+        // alloc space for dll path 
+        if (PVOID pszDllPath = VirtualAllocEx(hProcess, NULL, strlen(szDllPath) + 1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE)) 
+        { 
+            // write dll path 
+            if (WriteProcessMemory(hProcess, pszDllPath, szDllPath, strlen(szDllPath) + 1, NULL)) 
+            { 
+                // fill loader code pszDllPath data 
+                pData[2] = (DWORD)pszDllPath; 
+ 
+                // open main thread 
+                if (HANDLE hThread  = OpenThread(THREAD_SUSPEND_RESUME 
+                    | THREAD_GET_CONTEXT 
+                    | THREAD_SET_CONTEXT, FALSE, dwThreadId)) 
+                { 
+                    // suspend main thread 
+                    if (SuspendThread(hThread) != 0xFFFFFFFF) 
+                    { 
+                        // get main thread context 
+                        CONTEXT ctx = {CONTEXT_CONTROL}; 
+                        if (GetThreadContext(hThread, &ctx)) 
+                        { 
+                            // fill loader code pReturnAddr data, all needed data is collected now 
+                            pData[0]   = ctx.Eip; 
+                            if (PVOID pRemoteLdr = VirtualAllocEx(hProcess, NULL, dwSizeLoader, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE)) 
+                            { 
+                                // write loader code 
+                                if (WriteProcessMemory(hProcess, pRemoteLdr, pLdrCode, dwSizeLoader, NULL)) 
+                                { 
+                                    // free loader code buffer 
+                                    HeapFree(GetProcessHeap(), NULL, (PVOID)pLdrCode); 
+ 
+                                    // set eip to first instruction of loader code 
+                                    ctx.Eip = (DWORD)pRemoteLdr; 
+ 
+                                    // set modified thread context to target process 
+                                    if (SetThreadContext(hThread, &ctx)) 
+                                    { 
+                                        // resume execution, let the loader run 
+                                        if (ResumeThread(hThread) != 0xFFFFFFFF) 
+                                        { 
+                                            // everything went fine 
+                                            bRet = TRUE; 
+ 
+                                            // check if LoadLibraryA in loader code already returned 
+                                            DWORD dwRetValue = 0; 
+                                            do 
+                                            { 
+                                                Sleep(125); 
+                                                // get pRetVal of our allocated loader code in target process 
+                                                ReadProcessMemory(hProcess, (PVOID)((PBYTE)pRemoteLdr + (dwSizeLoader - 4)), &dwRetValue, 4, NULL); 
+                                                // check for default value 
+                                            } while (dwRetValue == 0xFFFFFFFF); 
+ 
+                                            *pdwReturn = dwRetValue; 
+                                        } 
+                                    } 
+                                } 
+                                VirtualFreeEx(hProcess, pRemoteLdr, 0, MEM_RELEASE); 
+                            }  
+                        } 
+                        if (!bRet) 
+                            ResumeThread(hThread); 
+                    }          
+                    CloseHandle(hThread); 
+                } 
+            } 
+            VirtualFreeEx(hProcess, pszDllPath, 0, MEM_RELEASE); 
+        } 
+        CloseHandle(hProcess); 
+    } 
+ 
+    return bRet; 
+} 
+ 
+// gets the main thread id from TIB by processid  
+// returns 0 when failed 
+DWORD GetMainThreadId(IN DWORD dwProcessId) 
+{ 
+    DWORD dwRet = 0; 
+ 
+    if (HANDLE hProcess = OpenProcess(PROCESS_VM_READ, FALSE, dwProcessId)) 
+    { 
+ 
+        PVOID pThreadId = (PVOID)((DWORD)__readfsdword(0x18) + 0x24); 
+ 
+        DWORD dwThreadId = 0; 
+ 
+        if (ReadProcessMemory(hProcess, pThreadId, &dwThreadId, 4, NULL)) 
+            dwRet = dwThreadId; 
+ 
+        CloseHandle(hProcess); 
+    } 
+ 
+    return dwRet; 
+} 
+ 
+// enumerates all processes and checks for a given name 
+// if processname is not unique function will return (DWORD)-1 
+// if processname was not found function will return 0 otherwise processid; 
+// lowercase / uppercase doesn't matter 
+DWORD GetProcessId(IN PCHAR szExeName) 
+{ 
+    DWORD dwRet = 0; 
+    DWORD dwCount = 0; 
+ 
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0); 
+ 
+    if (hSnapshot != INVALID_HANDLE_VALUE) 
+    { 
+        PROCESSENTRY32 pe = {0}; 
+        pe.dwSize = sizeof(PROCESSENTRY32); 
+ 
+        BOOL bRet = Process32First(hSnapshot, &pe); 
+ 
+        while (bRet) 
+        { 
+            if (!_stricmp(pe.szExeFile, szExeName)) 
+            { 
+                dwCount++; 
+                dwRet = pe.th32ProcessID; 
+            } 
+            bRet = Process32Next(hSnapshot, &pe); 
+        } 
+ 
+        if (dwCount > 1) 
+            dwRet = 0xFFFFFFFF; 
+ 
+        CloseHandle(hSnapshot); 
+    } 
+ 
+    return dwRet; 
+} 
+ 
+// checks wheter a module is loaded identified by it's full filepath or filename 
+// if bFullPath is FALSE and modulename is not unique func will return (DWORD)-1 
+// if a module with given modulename / path was not found in target process func will return 0 otherwise module handle 
+// lowercase / uppercase doesn't matter 
+DWORD GetModule(IN DWORD dwProcessId, IN PCHAR szModuleNameOrPath, IN BOOL bFullPath) 
+{ 
+    DWORD dwRet = 0; 
+    DWORD dwCount = 0; 
+ 
+    HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, dwProcessId); 
+ 
+    if (hSnapShot != INVALID_HANDLE_VALUE)  
+    { 
+        MODULEENTRY32 me = {0}; 
+        me.dwSize = sizeof(MODULEENTRY32); 
+ 
+        BOOL bRet = Module32First(hSnapShot, &me); 
+ 
+        while(bRet)  
+        { 
+            PCHAR szCompare = me.szExePath; 
+ 
+            if (!bFullPath) 
+                szCompare = PathFindFileNameA(me.szExePath); 
+ 
+            if (!_stricmp(szCompare, szModuleNameOrPath)) 
+            {             
+                dwRet = (DWORD)me.hModule; 
+ 
+                if (bFullPath) 
+                    break; 
+                else
+                    dwCount++; 
+            } 
+            bRet = Module32Next(hSnapShot, &me); 
+        } 
+ 
+        if (!bFullPath && dwCount > 1) 
+            dwRet = 0xFFFFFFFF; 
+ 
+        CloseHandle(hSnapShot); 
+    } 
+ 
+    return dwRet; 
+} 
+ 
+int main(void) 
+{ 
+    char buf[128] = {0}; 
+    BOOL bFullPath = FALSE; 
+ 
+    if (DWORD dwProcessId = GetProcessId("test.exe")) 
+    { 
+        DWORD dwModule = GetModule(dwProcessId, "test.dll", bFullPath); 
+ 
+        if (!dwModule && dwModule != 0xFFFFFFFF) 
+        { 
+            if (DWORD dwMainThreadId = GetMainThreadId(dwProcessId)) 
+            { 
+                DWORD dwRetValue = 0xFFFFFFFF; 
+                if (CodeCaveInjectDll("C:\test.dll", dwProcessId, dwMainThreadId, &dwRetValue)) 
+                { 
+                    dwModule = GetModule(dwProcessId, "C:\test.dll", TRUE); 
+ 
+                    wsprintfA(buf, "CodeCaveInjectDll succeedednLoadLibraryA returned: 0x%xnVerification: 0x%x", dwRetValue, dwModule); 
+                    MessageBoxA(NULL, buf, "Info", MB_OK | MB_TOPMOST); 
+                } 
+            } 
+ 
+        } 
+        else if (dwModule) 
+            MessageBoxA(NULL, "module with same filepath or filename already loaded", "Info", MB_OK | MB_TOPMOST); 
+        else if (!bFullPath && dwModule == 0xFFFFFFFF) 
+            MessageBoxA(NULL, "modulename in target process is not unique", "Info", MB_OK | MB_TOPMOST); 
+    } 
+    else
+    { 
+        MessageBoxA(NULL, "process not found", "Info", MB_OK | MB_TOPMOST); 
+    } 
+ 
+    return 0; 
+}

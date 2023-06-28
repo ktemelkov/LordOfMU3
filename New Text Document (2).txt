@@ -1,0 +1,190 @@
+#include  
+#include  
+#include  
+
+#define PROC_NAME "target.exe" 
+#define DLL_NAME "injected.dll" 
+
+unsigned long GetTargetProcessIdFromProcname(char *procName); 
+unsigned long GetTargetThreadIdFromProcname(char *procName); 
+
+__declspec(naked) loadDll(void) 
+{ 
+   _asm{ 
+      //   Placeholder for the return address 
+			push 0xDEADBEEF 
+
+      //   Save the flags and registers 
+      pushfd 
+      pushad 
+
+      //   Placeholder for the string address and LoadLibrary 
+      push 0xDEADBEEF 
+      mov eax, 0xDEADBEEF 
+
+      //   Call LoadLibrary with the string parameter 
+      call eax 
+
+      //   Restore the registers and flags 
+      popad 
+      popfd 
+       
+      //   Return control to the hijacked thread 
+      ret 
+   } 
+} 
+
+__declspec(naked) loadDll_end(void) 
+{ 
+} 
+
+int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR lpCmdLine,int nCmdShow) 
+{ 
+   void *dllString; 
+   void *stub; 
+   unsigned long wowID, threadID, stubLen, oldIP, oldprot, loadLibAddy; 
+    HANDLE hProcess, hThread; 
+   CONTEXT ctx; 
+    
+   stubLen = (unsigned long)loadDll_end - (unsigned long)loadDll; 
+    
+   loadLibAddy = (unsigned long)GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA"); 
+
+   wowID    = GetTargetProcessIdFromProcname(PROC_NAME); 
+   hProcess = OpenProcess((PROCESS_VM_WRITE | PROCESS_VM_OPERATION), false, wowID); 
+
+dllString = VirtualAllocEx(hProcess, 
+                           NULL, 
+                           (strlen(DLL_NAME) + 1), 
+                           MEM_COMMIT, 
+                           PAGE_READWRITE
+                          ); 
+stub      = VirtualAllocEx(hProcess, 
+                           NULL, 
+                           stubLen, 
+                           MEM_COMMIT, 
+                           PAGE_EXECUTE_READWRITE
+                          ); 
+   WriteProcessMemory(hProcess, dllString, DLL_NAME, strlen(DLL_NAME), NULL); 
+    
+   threadID = GetTargetThreadIdFromProcname(PROC_NAME); 
+   hThread   = OpenThread((THREAD_GET_CONTEXT | THREAD_SET_CONTEXT | THREAD_SUSPEND_RESUME), 
+                        false, 
+                        threadID
+                       );
+   SuspendThread(hThread); 
+
+   ctx.ContextFlags = CONTEXT_CONTROL; 
+   GetThreadContext(hThread, &ctx); 
+   oldIP   = ctx.Eip; 
+   ctx.Eip = (DWORD)stub; 
+   ctx.ContextFlags = CONTEXT_CONTROL; 
+
+   VirtualProtect(loadDll, stubLen, PAGE_EXECUTE_READWRITE, &oldprot); 
+   memcpy((void *)((unsigned long)loadDll + 1), &oldIP, 4); 
+   memcpy((void *)((unsigned long)loadDll + 8), &dllString, 4); 
+   memcpy((void *)((unsigned long)loadDll + 13), &loadLibAddy, 4); 
+
+    WriteProcessMemory(hProcess, stub, loadDll, stubLen, NULL); 
+   SetThreadContext(hThread, &ctx); 
+
+   ResumeThread(hThread); 
+
+   Sleep(8000); 
+
+   VirtualFreeEx(hProcess, dllString, strlen(DLL_NAME), MEM_DECOMMIT); 
+   VirtualFreeEx(hProcess, stub, stubLen, MEM_DECOMMIT); 
+   CloseHandle(hProcess); 
+   CloseHandle(hThread); 
+
+    return 0; 
+} 
+
+
+unsigned long GetTargetProcessIdFromProcname(char *procName) 
+{ 
+   PROCESSENTRY32 pe; 
+   HANDLE thSnapshot; 
+   BOOL retval, ProcFound = false; 
+
+   thSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0); 
+
+   if(thSnapshot == INVALID_HANDLE_VALUE) 
+   { 
+      MessageBox(NULL, 
+                 "Error: unable to create toolhelp snapshot", 
+                 "Loader", 
+                 NULL
+                ); 
+      return false; 
+   } 
+
+   pe.dwSize = sizeof(PROCESSENTRY32); 
+
+    retval = Process32First(thSnapshot, &pe); 
+
+   while(retval) 
+   { 
+      if(StrStrI(pe.szExeFile, procName) ) 
+      { 
+         ProcFound = true; 
+         break; 
+      } 
+
+      retval    = Process32Next(thSnapshot,&pe); 
+      pe.dwSize = sizeof(PROCESSENTRY32); 
+   } 
+
+   CloseHandle(thSnapshot); 
+   return pe.th32ProcessID; 
+} 
+
+unsigned long GetTargetThreadIdFromProcname(char *procName) 
+{ 
+   PROCESSENTRY32 pe; 
+   HANDLE thSnapshot, hProcess; 
+   BOOL retval, ProcFound = false; 
+   unsigned long pTID, threadID; 
+
+   thSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0); 
+
+   if(thSnapshot == INVALID_HANDLE_VALUE) 
+   { 
+      MessageBox(NULL, 
+                 "Error: unable to create toolhelp snapshot", 
+                 "Loader", 
+                 NULL
+                ); 
+      return false; 
+   } 
+
+   pe.dwSize = sizeof(PROCESSENTRY32); 
+
+    retval = Process32First(thSnapshot, &pe); 
+
+   while(retval) 
+   { 
+      if(StrStrI(pe.szExeFile, procName) ) 
+      { 
+         ProcFound = true; 
+         break; 
+      } 
+
+      retval    = Process32Next(thSnapshot,&pe); 
+      pe.dwSize = sizeof(PROCESSENTRY32); 
+   } 
+
+   CloseHandle(thSnapshot); 
+    
+   _asm { 
+      mov eax, fs:[0x18] 
+      add eax, 36 
+      mov [pTID], eax 
+   } 
+
+   hProcess = OpenProcess(PROCESS_VM_READ, false, pe.th32ProcessID); 
+   ReadProcessMemory(hProcess, (const void *)pTID, &threadID, 4, NULL); 
+   CloseHandle(hProcess); 
+
+   return threadID; 
+}
